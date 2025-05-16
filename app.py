@@ -4,6 +4,11 @@ import torch.nn as nn
 import numpy as np
 from flask import Flask, request, jsonify, render_template
 
+# Import model processors
+from model1_processor import Model1Processor
+from model2_processor import Model2Processor
+from model3_processor import Model3Processor
+
 app = Flask(__name__)
 
 # Create templates directory if it doesn't exist
@@ -131,34 +136,17 @@ def calculate_advanced_features(timing_data):
     
     return None
 
-# Load pre-trained models
-models = {}
+# Initialize model processors
+model1 = Model1Processor('model_weights.pth')
+model2 = Model2Processor('model1_weights.pth')
+model3 = Model3Processor('model3_weights.pth')
 
+# Load models at startup
 def load_models():
-    model_paths = {
-        'model1': 'model_weights.pth',
-        'model2': 'model1_weights.pth',
-        'model3': 'model3_weights.pth'
-    }
-    
-    for model_id, model_path in model_paths.items():
-        # Create model instance
-        model = MultiOutputNet()
-        
-        # Check if model file exists
-        if os.path.exists(model_path):
-            try:
-                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-                model.eval()
-                models[model_id] = model
-                print(f"Model {model_id} loaded successfully from {model_path}")
-            except Exception as e:
-                print(f"Error loading model {model_id}: {e}")
-                # Use untrained model as fallback
-                models[model_id] = model
-        else:
-            print(f"Model file {model_path} not found. Using untrained model.")
-            models[model_id] = model
+    model1.load_model(MultiOutputNet)
+    model2.load_model(MultiOutputNet)
+    model3.load_model(MultiOutputNet)
+    print("Models loaded successfully")
 
 # Load models when app starts
 load_models()
@@ -177,46 +165,32 @@ def predict():
         return jsonify({'error': 'Not enough keystroke data. Please type more.'})
     
     try:
-        # Select the appropriate feature extraction method based on model
+        # Select the appropriate model processor based on model_id
+        processor = None
         if model_id == 'model1':
-            features = calculate_basic_features(keystroke_timings)
+            processor = model1
         elif model_id == 'model2':
-            features = calculate_histogram_features(keystroke_timings)
+            processor = model2
         elif model_id == 'model3':
-            features = calculate_advanced_features(keystroke_timings)
+            processor = model3
         else:
             return jsonify({'error': 'Invalid model selection'})
         
+        # Extract features
+        features = processor.extract_features(keystroke_timings)
         if features is None:
             return jsonify({'error': 'Failed to extract features from keystroke data'})
         
-        # Use pre-trained model to make prediction
-        model = models.get(model_id)
-        if model is None:
-            return jsonify({'error': 'Selected model not available'})
-        
-        # Convert features to tensor for model input
-        input_tensor = torch.FloatTensor(features).unsqueeze(0)
+        # Normalize features
+        normalized_features = processor.normalize_features(features)
         
         # Make prediction
-        with torch.no_grad():
-            age_pred, gender_pred, handedness_pred, class_pred = model(input_tensor)
+        result = processor.predict(normalized_features)
+        if result is None:
+            return jsonify({'error': 'Failed to make prediction'})
+            
+        return jsonify(result)
         
-        # Process predictions
-        # Scale age prediction to a reasonable range (20-70)
-        age = max(20, min(70, int(age_pred.item() * 50 + 20)))
-        
-        gender = "Male" if torch.argmax(gender_pred, dim=1).item() == 1 else "Female"
-        handedness = "Right-handed" if torch.argmax(handedness_pred, dim=1).item() == 1 else "Left-handed"
-        user_class = "Class A" if torch.argmax(class_pred, dim=1).item() == 1 else "Class B"
-        
-        return jsonify({
-            'age': age,
-            'gender': gender,
-            'handedness': handedness,
-            'class': user_class
-        })
-    
     except Exception as e:
         print(f"Error in prediction: {str(e)}")
         return jsonify({'error': f'Prediction error: {str(e)}'})
