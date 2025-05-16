@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #505050;
-            --secondary-color: #707070;
-            --accent-color: #4c8bf5;
+            --primary-color: #8A1273; /* GREYC purple */
+            --secondary-color: #9A2283;
+            --accent-color: #5A0152;
             --light-grey: #f0f0f0;
             --dark-grey: #333333;
             --medium-grey: #555555;
@@ -40,6 +40,10 @@
             margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 1px solid var(--light-grey);
+            background-color: var(--primary-color);
+            margin: -30px -30px 30px -30px;
+            padding: 20px 30px;
+            border-radius: 12px 12px 0 0;
         }
         
         .header img {
@@ -49,7 +53,7 @@
         .header h1 {
             font-size: 2.2rem;
             margin: 0;
-            color: var(--primary-color);
+            color: white;
             font-weight: 600;
         }
         
@@ -73,8 +77,8 @@
         }
         
         .info-alert {
-            background-color: rgba(76, 139, 245, 0.1);
-            border-left: 4px solid var(--accent-color);
+            background-color: rgba(138, 18, 115, 0.1);
+            border-left: 4px solid var(--primary-color);
             padding: 15px;
             margin-bottom: 25px;
             border-radius: 6px;
@@ -95,8 +99,8 @@
         
         .typing-area:focus {
             outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 2px rgba(76, 139, 245, 0.2);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(138, 18, 115, 0.2);
         }
         
         .keystroke-data {
@@ -108,7 +112,7 @@
         }
         
         .btn-primary {
-            background-color: var(--accent-color);
+            background-color: var(--primary-color);
             border: none;
             padding: 12px 24px;
             border-radius: 6px;
@@ -117,7 +121,7 @@
         }
         
         .btn-primary:hover {
-            background-color: #3a78d8;
+            background-color: var(--secondary-color);
             transform: translateY(-1px);
         }
         
@@ -156,7 +160,7 @@
         .result-icon {
             font-size: 2rem;
             margin-right: 20px;
-            color: var(--accent-color);
+            color: var(--primary-color);
             width: 50px;
             text-align: center;
         }
@@ -185,7 +189,7 @@
     <div class="container">
         <div class="header">
             <h1>Keystroke Analysis</h1>
-            <img src="/static/greyc.png" alt="GREUC Logo">
+            <img src="/static/greyc.png" alt="GREYC Logo">
         </div>
         
         <div class="model-selector">
