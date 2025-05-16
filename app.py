@@ -10,10 +10,12 @@ from model1_processor import Model1Processor
 from model2_processor import Model2Processor
 from model3_processor import Model3Processor
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Create templates directory if it doesn't exist
 os.makedirs('templates', exist_ok=True)
+# Create static directory if it doesn't exist
+os.makedirs('static', exist_ok=True)
 
 # Define different model architectures for each model type
 class Model1Net(nn.Module):
@@ -212,9 +214,11 @@ load_models()
 
 @app.route('/')
 def index():
-    # Encode GREUC logo as base64 to avoid needing static files
-    greuc_logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAA8CAYAAAAjW/WRAAAEDElEQVR4nO3cz2sdRRzA8c+kSUkFo1VJlPpnFBW1Itb6C/wBUrSKoAcPHjwIehJUEE+ePHjwIggePXjw4sWj/gvtQUQRqYrVUGvaJJWm8fDd6NP1vZe3L5mZnffeDwxpXrKbmd3Z78zsJpuCJEmSJEmSJEmSJEmSJEmSJOl/1mQOsA08CTwPXAPuAm7PHONlYBd4vMF7vgC2gAeBX4Ebge8/XP6/DDwFnAh8/1H+BB4FHgFuAj4pf4/hVuBp4NwxP7cGXAJerP3uLPBwxf9PA2eAv4A3gVsqXr8IfAK8AbxVxjpXxuTYmW1ys/UBLJ/LwKMc7+YBeAf4GbiD4sB1wZvAFxQHbFZ9EGRm9yr+9j7wU/n1ucBxFPeV5H6KxDmqxbgBPA+8XfP+e4C3gXXg9TWvvwY8G4hrBfw9459z9CDw9DFePwHcS7Fyd9U94QuWkYlEcduS1/ZSJM7WIIhYiJVJcqLha7uiK/Gg2UqbxZrUlnKnzLSYJp0KJkkXrVL/9LoImYLpqpWE9xzgfLW8Y5pQi9DmcSxLErtZc9J8GckqF5MuJEiO0dGqnvOmHW5XE2SRy6JFT5YoJkjLYn+0ZYz9NJ1Xrr4myLxMG4+s+5pcRO7KYmWMsKMkSte3HU2QDsrVIqdaIRbdVbZYA7Bqn2tVA/Oc+pIgy37u2WKt+AmvYtKs4jVbLfRl1RrH2ClJ7UuCxC6T5nFk1Ja62c66yLKoK/hGl5NkEbZZqdikdBfHThLGCe3EPu/g4DLyNS3PPdeU68JE8UGpG7VF2wG8VavZlHbcZbHTI8SLHrRVaLVMjn44nISzTvt1NkHm3Yq0kSxdSJ5FtFjOU2pX0+SYdG0pJWqFOCZHTNNEGXf9bZaTlKi1ZdpNDDnXiIk5m/a6miB9FvODLarVarIy2Gq1JKaNbZbJsbg1kC4myLqYh2yN5bOIA51EWat4Ky72OZ9o6ywz1kEii7lZY3aKlyqOuQ4yq9VKWZ+w1UrP5Gi+XtLZBOnCYPWqmrUI3vYZRpMrOQM2LTFM0GrE9IbM5MCxUDzTlnsMJMU5NX1Wb0y6liBtH7DF7Hnpopgr+MZsJWO6VLd/3zTAotZAupogsQbXYnVZaov4sLxV349VZ5U/q9cGE6QDUnT3FrnqTeuSpdxcLHLRMfYDYUyQ5dBkL1LfxU65UuVY81jF9ZCuJkhuOaaKQzkXItdpUCfFPeTeyDivrk4zZ5FyKdkE6YAcg+1F2nFP2yVKWSuKZbdtVRNkVW7mtg5m2yyGJo0Jw2ZrVKyZzB8tTvZk6XSCSJK67T9Iv42EuF5TFwAAAABJRU5ErkJggg=="
-    return render_template('index.html', logo=greuc_logo)
+    return render_template('index.html')
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
 
 @app.route('/api/predict', methods=['POST'])
 def predict():

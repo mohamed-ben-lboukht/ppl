@@ -5,71 +5,201 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keystroke Analysis</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #505050;
+            --secondary-color: #707070;
+            --accent-color: #4c8bf5;
+            --light-grey: #f0f0f0;
+            --dark-grey: #333333;
+            --medium-grey: #555555;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f8f9fa;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: var(--dark-grey);
         }
+        
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 900px;
+            margin: 40px auto;
             background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
         }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--light-grey);
+        }
+        
+        .header img {
+            height: 60px;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            margin: 0;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .model-selector {
+            margin-bottom: 25px;
+            background-color: var(--light-grey);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .model-selector label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--medium-grey);
+        }
+        
+        .form-select {
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        
+        .info-alert {
+            background-color: rgba(76, 139, 245, 0.1);
+            border-left: 4px solid var(--accent-color);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 6px;
+            color: var(--medium-grey);
+        }
+        
         .typing-area {
             margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ced4da;
-            border-radius: 5px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             min-height: 150px;
-            background-color: #f8f9fa;
+            background-color: white;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 1.1rem;
+            transition: border-color 0.3s;
         }
+        
+        .typing-area:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(76, 139, 245, 0.2);
+        }
+        
         .keystroke-data {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #6c757d;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: var(--secondary-color);
+            display: flex;
+            justify-content: space-between;
         }
+        
+        .btn-primary {
+            background-color: var(--accent-color);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3a78d8;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background-color: var(--medium-grey);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
         .results {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ced4da;
-            border-radius: 5px;
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 8px;
             display: none;
+            background-color: var(--light-grey);
         }
-        .result-box {
-            background-color: #e9ecef;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .model-selector {
+        
+        .results h3 {
+            color: var(--primary-color);
             margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .result-box {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+        }
+        
+        .result-icon {
+            font-size: 2rem;
+            margin-right: 20px;
+            color: var(--accent-color);
+            width: 50px;
+            text-align: center;
+        }
+        
+        .result-content {
+            flex: 1;
+        }
+        
+        .result-content h5 {
+            margin: 0 0 8px 0;
+            color: var(--medium-grey);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .result-content p {
+            font-size: 1.4rem;
+            margin: 0;
+            font-weight: 600;
+            color: var(--dark-grey);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">Keystroke Analysis</h1>
+        <div class="header">
+            <h1>Keystroke Analysis</h1>
+            <img src="/static/greyc.png" alt="GREUC Logo">
+        </div>
         
         <div class="model-selector">
             <label for="model-select" class="form-label">Select Model:</label>
             <select id="model-select" class="form-select">
-                <option value="model1">Model 1 (Basic)</option>
-                <option value="model2" selected>Model 2 (Histogram)</option>
-                <option value="model3">Model 3 (Advanced)</option>
+                <option value="model1">Model 1 (Statistical Features)</option>
+                <option value="model2" selected>Model 2 (Histogram Features)</option>
+                <option value="model3">Model 3 (Combined Features)</option>
             </select>
         </div>
         
-        <p class="alert alert-info">
-            Type the phrase below and our model will analyze your keystroke patterns to predict your profile.
-        </p>
-        
-        <h5>Type the following phrase:</h5>
-        <p class="fw-bold">"united states of america"</p>
+        <div class="info-alert">
+            <p class="mb-0">Type freely in the area below. Our model will analyze your keystroke patterns to predict your profile.</p>
+        </div>
         
         <div class="typing-area" id="typing-area" contenteditable="true"></div>
         
@@ -78,36 +208,60 @@
             <div id="timing-info">Awaiting keystrokes...</div>
         </div>
         
-        <div class="d-flex justify-content-between mt-3">
-            <button id="clear-btn" class="btn btn-secondary">Clear</button>
-            <button id="analyze-btn" class="btn btn-primary" disabled>Analyze Keystrokes</button>
+        <div class="d-flex justify-content-between mt-4">
+            <button id="clear-btn" class="btn btn-secondary">
+                <i class="fas fa-trash-alt me-2"></i>Clear
+            </button>
+            <button id="analyze-btn" class="btn btn-primary" disabled>
+                <i class="fas fa-chart-line me-2"></i>Analyze Keystrokes
+            </button>
         </div>
         
         <div class="results mt-4" id="results">
-            <h3 class="mb-3">Analysis Results</h3>
+            <h3>Analysis Results</h3>
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-6 mb-3">
                     <div class="result-box">
-                        <h5>Age</h5>
-                        <p id="age-result" class="fs-4 mb-0">-</p>
+                        <div class="result-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="result-content">
+                            <h5>Age</h5>
+                            <p id="age-result">-</p>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mb-3">
                     <div class="result-box">
-                        <h5>Gender</h5>
-                        <p id="gender-result" class="fs-4 mb-0">-</p>
+                        <div class="result-icon">
+                            <i class="fas fa-venus-mars"></i>
+                        </div>
+                        <div class="result-content">
+                            <h5>Gender</h5>
+                            <p id="gender-result">-</p>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mb-3">
                     <div class="result-box">
-                        <h5>Handedness</h5>
-                        <p id="handedness-result" class="fs-4 mb-0">-</p>
+                        <div class="result-icon">
+                            <i class="fas fa-hand-paper"></i>
+                        </div>
+                        <div class="result-content">
+                            <h5>Handedness</h5>
+                            <p id="handedness-result">-</p>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6 mb-3">
                     <div class="result-box">
-                        <h5>Class</h5>
-                        <p id="class-result" class="fs-4 mb-0">-</p>
+                        <div class="result-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="result-content">
+                            <h5>Class</h5>
+                            <p id="class-result">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -173,7 +327,7 @@
                 const selectedModel = modelSelect.value;
                 
                 analyzeBtn.disabled = true;
-                analyzeBtn.textContent = 'Analyzing...';
+                analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
                 
                 // Send keystroke data to server
                 fetch('/api/predict', {
@@ -206,7 +360,7 @@
                 })
                 .finally(() => {
                     analyzeBtn.disabled = false;
-                    analyzeBtn.textContent = 'Analyze Keystrokes';
+                    analyzeBtn.innerHTML = '<i class="fas fa-chart-line me-2"></i>Analyze Keystrokes';
                 });
             });
         });
