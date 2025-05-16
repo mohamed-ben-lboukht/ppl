@@ -11,6 +11,14 @@ class Model2Processor:
         self.num_bins = 20
         self.min_range = 0
         self.max_range = 1000  # milliseconds
+        
+        # Pre-initialize scaler with fixed values for deterministic predictions
+        # Create means and stds for a 20-bin histogram (typical values)
+        self.scaler.means_ = np.array([0.05] * 20)  # Equal distribution would be 0.05 per bin
+        self.scaler.stds_ = np.array([0.07] * 20)   # Standard deviation typical for histogram bins
+        
+        # Cache for deterministic predictions
+        self.prediction_cache = {}
     
     def load_model(self, model_class):
         """Load the PyTorch model"""
@@ -31,9 +39,21 @@ class Model2Processor:
         # Convert to milliseconds
         timing_ms = [t / 1000 for t in keystroke_timings]
         
+        # Generate a cache key for deterministic results
+        cache_key = self._generate_cache_key(timing_ms)
+        
+        # Check if we have a cached prediction
+        if cache_key in self.prediction_cache:
+            return self.prediction_cache[cache_key]['features']
+        
         try:
             # Compute histogram features
             hist_features = self.compute_histogram_features(timing_ms)
+            
+            # Store in cache
+            if cache_key not in self.prediction_cache:
+                self.prediction_cache[cache_key] = {'features': hist_features}
+                
             return hist_features
         except Exception as e:
             print(f"Error extracting histogram features: {e}")
@@ -60,23 +80,38 @@ class Model2Processor:
         return hist / hist_sum
     
     def normalize_features(self, features):
-        """Normalize features using RobustScaler"""
+        """Normalize features using RobustScaler with fixed parameters"""
+        # Get cache key to use the same normalized features for identical inputs
+        for key, data in self.prediction_cache.items():
+            if np.array_equal(data['features'], features):
+                if 'normalized' in data:
+                    return data['normalized']
+                break
+                
+        # Apply fixed normalization
         features_array = np.array(features).reshape(1, -1)
+        normalized = self.scaler.transform(features_array).flatten()
         
-        # If we haven't fit the scaler yet, initialize with some default values
-        if self.scaler.means_ is None:
-            # These would be derived from your training data
-            self.scaler.means_ = np.mean(features_array, axis=0)
-            self.scaler.stds_ = np.std(features_array, axis=0) 
-            self.scaler.stds_[self.scaler.stds_ == 0] = 1.0
-        
-        return self.scaler.transform(features_array).flatten()
+        # Store in cache
+        for key, data in self.prediction_cache.items():
+            if np.array_equal(data['features'], features):
+                data['normalized'] = normalized
+                break
+                
+        return normalized
     
     def predict(self, features):
         """Make prediction using the loaded model"""
         if self.model is None:
             return None
             
+        # Check cache for previous prediction
+        for key, data in self.prediction_cache.items():
+            if 'normalized' in data and np.array_equal(data['normalized'], features):
+                if 'prediction' in data:
+                    return data['prediction']
+                break
+                
         # Convert features to torch tensor
         input_tensor = torch.FloatTensor(features).unsqueeze(0)
         
@@ -90,12 +125,26 @@ class Model2Processor:
         handedness = "Right-handed" if torch.argmax(handedness_pred, dim=1).item() == 1 else "Left-handed"
         user_class = "Class A" if torch.argmax(class_pred, dim=1).item() == 1 else "Class B"
         
-        return {
+        result = {
             'age': age,
             'gender': gender,
             'handedness': handedness,
             'class': user_class
         }
+        
+        # Store in cache
+        for key, data in self.prediction_cache.items():
+            if 'normalized' in data and np.array_equal(data['normalized'], features):
+                data['prediction'] = result
+                break
+                
+        return result
+        
+    def _generate_cache_key(self, timings):
+        """Generate a cache key for a given set of keystroke timings"""
+        # Round to reduce minor variations and improve cache hits
+        rounded = [round(t, 2) for t in timings]
+        return hash(str(rounded))
 
 
 class RobustScaler:

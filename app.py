@@ -2,7 +2,8 @@ import os
 import torch
 import torch.nn as nn
 import numpy as np
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
+import base64
 
 # Import model processors
 from model1_processor import Model1Processor
@@ -14,12 +15,70 @@ app = Flask(__name__)
 # Create templates directory if it doesn't exist
 os.makedirs('templates', exist_ok=True)
 
-# Define the neural network model architecture
-class MultiOutputNet(nn.Module):
+# Define different model architectures for each model type
+class Model1Net(nn.Module):
     def __init__(self):
-        super(MultiOutputNet, self).__init__()
+        super(Model1Net, self).__init__()
         self.shared = nn.Sequential(
-            nn.Linear(20, 128),
+            nn.Linear(7, 128),  # Model 1 has 7 features
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 32),
+            nn.ReLU()
+        )
+        self.age_head = nn.Sequential(
+            nn.Linear(32, 1),
+            nn.ReLU()
+        )
+        self.gender_head = nn.Linear(32, 2)
+        self.handedness_head = nn.Linear(32, 2)
+        self.class_head = nn.Linear(32, 2)
+
+    def forward(self, x):
+        x = self.shared(x)
+        age = self.age_head(x)
+        gender = self.gender_head(x)
+        handedness = self.handedness_head(x)
+        class_output = self.class_head(x)
+        return age, gender, handedness, class_output
+
+class Model2Net(nn.Module):
+    def __init__(self):
+        super(Model2Net, self).__init__()
+        self.shared = nn.Sequential(
+            nn.Linear(20, 128),  # Model 2 has 20 histogram features
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 32),
+            nn.ReLU()
+        )
+        self.age_head = nn.Sequential(
+            nn.Linear(32, 1),
+            nn.ReLU()
+        )
+        self.gender_head = nn.Linear(32, 2)
+        self.handedness_head = nn.Linear(32, 2)
+        self.class_head = nn.Linear(32, 2)
+
+    def forward(self, x):
+        x = self.shared(x)
+        age = self.age_head(x)
+        gender = self.gender_head(x)
+        handedness = self.handedness_head(x)
+        class_output = self.class_head(x)
+        return age, gender, handedness, class_output
+
+class Model3Net(nn.Module):
+    def __init__(self):
+        super(Model3Net, self).__init__()
+        self.shared = nn.Sequential(
+            nn.Linear(20, 128),  # Model 3 has 20 combined features
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(128, 64),
@@ -136,16 +195,16 @@ def calculate_advanced_features(timing_data):
     
     return None
 
-# Initialize model processors
+# Initialize model processors with correct model classes
 model1 = Model1Processor('model_weights.pth')
 model2 = Model2Processor('model1_weights.pth')
 model3 = Model3Processor('model3_weights.pth')
 
 # Load models at startup
 def load_models():
-    model1.load_model(MultiOutputNet)
-    model2.load_model(MultiOutputNet)
-    model3.load_model(MultiOutputNet)
+    model1.load_model(Model1Net)
+    model2.load_model(Model2Net)
+    model3.load_model(Model3Net)
     print("Models loaded successfully")
 
 # Load models when app starts
@@ -153,7 +212,9 @@ load_models()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Encode GREUC logo as base64 to avoid needing static files
+    greuc_logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAA8CAYAAAAjW/WRAAAEDElEQVR4nO3cz2sdRRzA8c+kSUkFo1VJlPpnFBW1Itb6C/wBUrSKoAcPHjwIehJUEE+ePHjwIggePXjw4sWj/gvtQUQRqYrVUGvaJJWm8fDd6NP1vZe3L5mZnffeDwxpXrKbmd3Z78zsJpuCJEmSJEmSJEmSJEmSJEmSJOl/1mQOsA08CTwPXAPuAm7PHONlYBd4vMF7vgC2gAeBX4Ebge8/XP6/DDwFnAh8/1H+BB4FHgFuAj4pf4/hVuBp4NwxP7cGXAJerP3uLPBwxf9PA2eAv4A3gVsqXr8IfAK8AbxVxjpXxuTYmW1ys/UBLJ/LwKMc7+YBeAf4GbiD4sB1wZvAFxQHbFZ9EGRm9yr+9j7wU/n1ucBxFPeV5H6KxDmqxbgBPA+8XfP+e4C3gXXg9TWvvwY8G4hrBfw9459z9CDw9DFePwHcS7Fyd9U94QuWkYlEcduS1/ZSJM7WIIhYiJVJcqLha7uiK/Gg2UqbxZrUlnKnzLSYJp0KJkkXrVL/9LoImYLpqpWE9xzgfLW8Y5pQi9DmcSxLErtZc9J8GckqF5MuJEiO0dGqnvOmHW5XE2SRy6JFT5YoJkjLYn+0ZYz9NJ1Xrr4myLxMG4+s+5pcRO7KYmWMsKMkSte3HU2QDsrVIqdaIRbdVbZYA7Bqn2tVA/Oc+pIgy37u2WKt+AmvYtKs4jVbLfRl1RrH2ClJ7UuCxC6T5nFk1Ja62c66yLKoK/hGl5NkEbZZqdikdBfHThLGCe3EPu/g4DLyNS3PPdeU68JE8UGpG7VF2wG8VavZlHbcZbHTI8SLHrRVaLVMjn44nISzTvt1NkHm3Yq0kSxdSJ5FtFjOU2pX0+SYdG0pJWqFOCZHTNNEGXf9bZaTlKi1ZdpNDDnXiIk5m/a6miB9FvODLarVarIy2Gq1JKaNbZbJsbg1kC4myLqYh2yN5bOIA51EWat4Ky72OZ9o6ywz1kEii7lZY3aKlyqOuQ4yq9VKWZ+w1UrP5Gi+XtLZBOnCYPWqmrUI3vYZRpMrOQM2LTFM0GrE9IbM5MCxUDzTlnsMJMU5NX1Wb0y6liBtH7DF7Hnpopgr+MZsJWO6VLd/3zTAotZAupogsQbXYnVZaov4sLxV349VZ5U/q9cGE6QDUnT3FrnqTeuSpdxcLHLRMfYDYUyQ5dBkL1LfxU65UuVY81jF9ZCuJkhuOaaKQzkXItdpUCfFPeTeyDivrk4zZ5FyKdkE6YAcg+1F2nFP2yVKWSuKZbdtVRNkVW7mtg5m2yyGJo0Jw2ZrVKyZzB8tTvZk6XSCSJK67T9Iv42EuF5TFwAAAABJRU5ErkJggg=="
+    return render_template('index.html', logo=greuc_logo)
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
