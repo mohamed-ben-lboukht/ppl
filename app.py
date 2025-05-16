@@ -2,9 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import numpy as np
-import json
 from flask import Flask, request, jsonify, render_template
-from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -138,13 +136,13 @@ models = {}
 
 def load_models():
     model_paths = {
-        'model1': 'model_basic.pt',
-        'model2': 'model_histogram.pt',
-        'model3': 'model_advanced.pt'
+        'model1': 'model_weights.pth',
+        'model2': 'model1_weights.pth',
+        'model3': 'model3_weights.pth'
     }
     
     for model_id, model_path in model_paths.items():
-        # Mock model loading for now (actual models would be loaded here)
+        # Create model instance
         model = MultiOutputNet()
         
         # Check if model file exists
@@ -159,7 +157,7 @@ def load_models():
                 # Use untrained model as fallback
                 models[model_id] = model
         else:
-            print(f"Model file {model_path} not found. Using untrained model as placeholder.")
+            print(f"Model file {model_path} not found. Using untrained model.")
             models[model_id] = model
 
 # Load models when app starts
@@ -205,7 +203,9 @@ def predict():
             age_pred, gender_pred, handedness_pred, class_pred = model(input_tensor)
         
         # Process predictions
-        age = round(float(age_pred.item()))
+        # Scale age prediction to a reasonable range (20-70)
+        age = max(20, min(70, int(age_pred.item() * 50 + 20)))
+        
         gender = "Male" if torch.argmax(gender_pred, dim=1).item() == 1 else "Female"
         handedness = "Right-handed" if torch.argmax(handedness_pred, dim=1).item() == 1 else "Left-handed"
         user_class = "Class A" if torch.argmax(class_pred, dim=1).item() == 1 else "Class B"
@@ -220,23 +220,6 @@ def predict():
     except Exception as e:
         print(f"Error in prediction: {str(e)}")
         return jsonify({'error': f'Prediction error: {str(e)}'})
-
-# Create dummy model files for demonstration purposes
-def create_dummy_models():
-    model_names = ['model_basic.pt', 'model_histogram.pt', 'model_advanced.pt']
-    
-    for model_name in model_names:
-        if not os.path.exists(model_name):
-            try:
-                # Create a dummy model
-                dummy_model = MultiOutputNet()
-                torch.save(dummy_model.state_dict(), model_name)
-                print(f"Created dummy model: {model_name}")
-            except Exception as e:
-                print(f"Error creating dummy model {model_name}: {e}")
-
-# Create dummy models when starting
-create_dummy_models()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True) 
