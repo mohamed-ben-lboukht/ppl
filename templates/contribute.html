@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contribute - Keystroke Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .feedback-form {
+            background-color: var(--light-grey);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 25px;
+            display: none;
+        }
+        
+        .result-area {
+            background-color: var(--light-grey);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 25px;
+            display: none;
+        }
+        
+        .prediction-value {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .btn-secondary {
+            background-color: var(--light-grey);
+            border-color: #ddd;
+            color: var(--medium-grey);
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover, .btn-secondary:focus {
+            background-color: #e5e5e5;
+            color: var(--dark-grey);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Contribute Data</h1>
+            <div>
+                <a href="/" class="nav-link">Home</a>
+                <a href="/admin" class="nav-link">Admin</a>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>Help improve our models by contributing your typing data. Type freely in the box below and submit your keystroke patterns.
+        </div>
+        
+        <div class="model-selector mb-4">
+            <label for="modelSelect" class="form-label">Select Model for Analysis:</label>
+            <select class="form-select" id="modelSelect">
+                <option value="model1">Model 1: Basic Statistics</option>
+                <option value="model2" selected>Model 2: Histogram Analysis</option>
+                <option value="model3">Model 3: Advanced Combined</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="typingArea" class="form-label">Type anything you'd like to share (minimum 50 characters):</label>
+            <textarea class="form-control typing-area" id="typingArea" rows="5" placeholder="Start typing here..."></textarea>
+            <div class="text-muted mt-2">
+                <small>Characters: <span id="charCount">0</span>/50 minimum</small>
+            </div>
+        </div>
+        
+        <button id="analyzeBtn" class="btn btn-primary">
+            <i class="fas fa-keyboard me-2"></i>Analyze & Contribute
+        </button>
+        
+        <div id="resultArea" class="result-area">
+            <h4>Analysis Results</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <p>Predicted Age: <span id="predAge" class="prediction-value">--</span></p>
+                    <p>Predicted Gender: <span id="predGender" class="prediction-value">--</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p>Predicted Handedness: <span id="predHand" class="prediction-value">--</span></p>
+                    <p>Predicted Class: <span id="predClass" class="prediction-value">--</span></p>
+                </div>
+            </div>
+            
+            <div id="feedbackForm" class="feedback-form mt-4">
+                <h5>Are these predictions correct?</h5>
+                <div class="mb-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="feedbackChoice" id="correctChoice" value="correct">
+                        <label class="form-check-label" for="correctChoice">Yes, they're correct</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="feedbackChoice" id="incorrectChoice" value="incorrect">
+                        <label class="form-check-label" for="incorrectChoice">No, provide corrections</label>
+                    </div>
+                </div>
+                
+                <div id="correctionForm" class="mt-3" style="display: none;">
+                    <h6>Please provide correct information:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="actualAge" class="form-label">Your Age:</label>
+                                <input type="number" class="form-control" id="actualAge" min="1" max="120">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Your Gender:</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="actualGender" id="actualGenderM" value="M">
+                                    <label class="form-check-label" for="actualGenderM">Male</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="actualGender" id="actualGenderF" value="F">
+                                    <label class="form-check-label" for="actualGenderF">Female</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Your Handedness:</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="actualHand" id="actualHandR" value="R">
+                                    <label class="form-check-label" for="actualHandR">Right-handed</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="actualHand" id="actualHandL" value="L">
+                                    <label class="form-check-label" for="actualHandL">Left-handed</label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Your Class:</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="actualClass" id="actualClassS" value="S">
+                                    <label class="form-check-label" for="actualClassS">Student</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="actualClass" id="actualClassP" value="P">
+                                    <label class="form-check-label" for="actualClassP">Professional</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="submitFeedbackBtn" class="btn btn-primary mt-3">
+                    <i class="fas fa-paper-plane me-2"></i>Submit Feedback
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const typingArea = document.getElementById('typingArea');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const resultArea = document.getElementById('resultArea');
+            const feedbackForm = document.getElementById('feedbackForm');
+            const correctChoice = document.getElementById('correctChoice');
+            const incorrectChoice = document.getElementById('incorrectChoice');
+            const correctionForm = document.getElementById('correctionForm');
+            const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
+            const charCount = document.getElementById('charCount');
+            const modelSelect = document.getElementById('modelSelect');
+            
+            // Keystroke timing data array
+            let keystrokeData = [];
+            let lastKeystrokeTime = null;
+            
+            // Track character count
+            typingArea.addEventListener('input', function() {
+                charCount.textContent = typingArea.value.length;
+            });
+            
+            // Capture keystroke timing
+            typingArea.addEventListener('keydown', function(event) {
+                const currentTime = performance.now();
+                
+                if (lastKeystrokeTime !== null) {
+                    const timeBetweenKeystrokes = currentTime - lastKeystrokeTime;
+                    // Store in microseconds
+                    keystrokeData.push(timeBetweenKeystrokes * 1000);
+                }
+                
+                lastKeystrokeTime = currentTime;
+            });
+            
+            // Handle analyze button click
+            analyzeBtn.addEventListener('click', function() {
+                if (typingArea.value.length < 50) {
+                    alert('Please type at least 50 characters for accurate analysis.');
+                    return;
+                }
+                
+                if (keystrokeData.length < 10) {
+                    alert('Not enough keystroke data. Please type more naturally.');
+                    return;
+                }
+                
+                const modelId = modelSelect.value;
+                
+                // Send keystroke data to the server
+                fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        keystrokes: keystrokeData,
+                        model: modelId,
+                        text: typingArea.value
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display results
+                    document.getElementById('predAge').textContent = data.age;
+                    document.getElementById('predGender').textContent = data.gender === 'M' ? 'Male' : 'Female';
+                    document.getElementById('predHand').textContent = data.handedness === 'R' ? 'Right-handed' : 'Left-handed';
+                    document.getElementById('predClass').textContent = data.class === 'S' ? 'Student' : 'Professional';
+                    
+                    // Show result area and feedback form
+                    resultArea.style.display = 'block';
+                    feedbackForm.style.display = 'block';
+                    
+                    // Scroll to result area
+                    resultArea.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while analyzing your keystrokes.');
+                });
+            });
+            
+            // Show/hide correction form based on feedback choice
+            correctChoice.addEventListener('change', function() {
+                correctionForm.style.display = 'none';
+            });
+            
+            incorrectChoice.addEventListener('change', function() {
+                correctionForm.style.display = 'block';
+            });
+            
+            // Handle feedback submission
+            submitFeedbackBtn.addEventListener('click', function() {
+                const isCorrect = correctChoice.checked;
+                let feedbackData = {
+                    keystrokes: keystrokeData,
+                    text: typingArea.value,
+                    model: modelSelect.value,
+                    predicted: {
+                        age: document.getElementById('predAge').textContent,
+                        gender: document.getElementById('predGender').textContent === 'Male' ? 'M' : 'F',
+                        handedness: document.getElementById('predHand').textContent === 'Right-handed' ? 'R' : 'L',
+                        class: document.getElementById('predClass').textContent === 'Student' ? 'S' : 'P'
+                    },
+                    isCorrect: isCorrect
+                };
+                
+                // If predictions were incorrect, add actual values
+                if (!isCorrect) {
+                    const actualAge = document.getElementById('actualAge').value;
+                    const actualGender = document.querySelector('input[name="actualGender"]:checked')?.value;
+                    const actualHand = document.querySelector('input[name="actualHand"]:checked')?.value;
+                    const actualClass = document.querySelector('input[name="actualClass"]:checked')?.value;
+                    
+                    // Validate inputs
+                    if (!actualAge || !actualGender || !actualHand || !actualClass) {
+                        alert('Please fill in all correction fields.');
+                        return;
+                    }
+                    
+                    feedbackData.actual = {
+                        age: actualAge,
+                        gender: actualGender,
+                        handedness: actualHand,
+                        class: actualClass
+                    };
+                }
+                
+                // Submit feedback to the server
+                fetch('/api/contribute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(feedbackData),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Thank you for your contribution!');
+                        // Reset the form
+                        typingArea.value = '';
+                        charCount.textContent = '0';
+                        keystrokeData = [];
+                        lastKeystrokeTime = null;
+                        resultArea.style.display = 'none';
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while submitting your feedback.');
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

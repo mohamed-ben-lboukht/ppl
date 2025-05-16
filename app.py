@@ -2,6 +2,9 @@ import os
 import torch
 import torch.nn as nn
 import numpy as np
+import json
+import uuid
+from datetime import datetime
 from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
 import base64
 
@@ -16,6 +19,8 @@ app = Flask(__name__, static_folder='static')
 os.makedirs('templates', exist_ok=True)
 # Create static directory if it doesn't exist
 os.makedirs('static', exist_ok=True)
+# Create data directory if it doesn't exist
+os.makedirs('data', exist_ok=True)
 
 # Define different model architectures for each model type
 class Model1Net(nn.Module):
@@ -216,6 +221,14 @@ load_models()
 def index():
     return render_template('index.html')
 
+@app.route('/contribute')
+def contribute():
+    return render_template('contribute.html')
+
+@app.route('/admin')
+def admin():
+    return render_template('admin.html')
+
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
@@ -259,6 +272,56 @@ def predict():
     except Exception as e:
         print(f"Error in prediction: {str(e)}")
         return jsonify({'error': f'Prediction error: {str(e)}'})
+
+@app.route('/api/contribute', methods=['POST'])
+def contribute_data():
+    data = request.json
+    
+    if not data or not isinstance(data, dict):
+        return jsonify({'success': False, 'error': 'Invalid data format'})
+    
+    try:
+        # Add timestamp and ID
+        data['timestamp'] = datetime.now().isoformat()
+        data['id'] = str(uuid.uuid4())
+        
+        # Save data to JSON file
+        file_path = os.path.join('data', f"{data['id']}.json")
+        
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({'success': True, 'id': data['id']})
+    
+    except Exception as e:
+        print(f"Error saving contribution: {str(e)}")
+        return jsonify({'success': False, 'error': f'Failed to save data: {str(e)}'})
+
+@app.route('/api/admin/data', methods=['GET'])
+def get_admin_data():
+    try:
+        all_data = []
+        data_dir = 'data'
+        
+        # Load all JSON files from the data directory
+        for filename in os.listdir(data_dir):
+            if filename.endswith('.json'):
+                file_path = os.path.join(data_dir, filename)
+                try:
+                    with open(file_path, 'r') as f:
+                        file_data = json.load(f)
+                        all_data.append(file_data)
+                except Exception as e:
+                    print(f"Error reading file {filename}: {str(e)}")
+        
+        # Sort by timestamp (newest first)
+        all_data.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return jsonify(all_data)
+    
+    except Exception as e:
+        print(f"Error retrieving admin data: {str(e)}")
+        return jsonify([])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True) 
