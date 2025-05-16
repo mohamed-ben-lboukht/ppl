@@ -1,0 +1,67 @@
+# Keystroke Timing Analysis App
+
+This application captures keystroke timing patterns and uses machine learning models to predict user characteristics based on typing dynamics.
+
+## Features
+
+- Captures keystroke timing with microsecond precision (10^-6 seconds)
+- Provides three different prediction models:
+  - Model 1: Basic statistics-based features
+  - Model 2: Histogram-based features
+  - Model 3: Advanced combined features
+- Predicts age, gender, handedness, and user class
+
+## Requirements
+
+- Docker
+- Internet connection (for initial Docker image download)
+
+## Quick Start
+
+1. Build the Docker image:
+   ```
+   docker build -t keystroke-app .
+   ```
+
+2. Run the container:
+   ```
+   docker run -p 5000:5000 keystroke-app
+   ```
+
+3. Open your web browser and navigate to:
+   ```
+   http://localhost:5000
+   ```
+
+## How to Use
+
+1. Select a model from the dropdown menu
+2. Type the requested phrase in the text area
+3. Click "Analyze Keystrokes" to get predictions
+4. View the results in the analysis section
+
+## Technical Details
+
+- Backend: Flask web server with PyTorch models
+- Frontend: HTML/JavaScript for capturing keystrokes and displaying results
+- Models: Neural network architecture with shared layers and task-specific heads
+
+## Models
+
+Each model uses different feature extraction techniques:
+
+- **Basic Model**: Calculates statistical features like mean, median, standard deviation, etc.
+- **Histogram Model**: Creates a histogram of keystroke timings across 20 bins
+- **Advanced Model**: Combines both statistical and histogram-based features
+
+## Development
+
+If you wish to modify or extend this application:
+
+1. Make changes to the code
+2. Rebuild the Docker image
+3. Run the new container
+
+## Dataset
+
+The models were trained on keystroke dynamics data where users typed free text. Each keystroke timing was recorded with microsecond precision. 
