@@ -6,1042 +6,683 @@
     <title>Keystroke Analysis</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
-        :root {
-            --primary-color: #8A1273; /* GREYC purple */
-            --secondary-color: #9A2283;
-            --accent-color: #5A0152;
-            --light-grey: #f0f0f0;
-            --dark-grey: #333333;
-            --medium-grey: #555555;
-        }
-        
         body {
+            background-color: #f8f9fa;
+            color: #333;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
             padding: 0;
-            background-color: #f5f5f5;
-            color: var(--dark-grey);
+            margin: 0;
             overflow-x: hidden;
         }
         
-        .container {
-            max-width: 900px;
-            margin: 40px auto;
-            background-color: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            transform: translateY(0);
-            transition: transform 0.5s ease, box-shadow 0.5s ease;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .container:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(138, 18, 115, 0.2);
-        }
-        
-        .header {
+        .app-container {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid var(--light-grey);
-            background-color: var(--primary-color);
-            margin: -30px -30px 30px -30px;
-            padding: 20px 30px;
-            border-radius: 12px 12px 0 0;
-            position: relative;
-            overflow: hidden;
+            min-height: 100vh;
         }
         
-        .header::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%);
-            z-index: 0;
+        .sidebar {
+            width: 260px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            height: 100vh;
+            z-index: 1000;
         }
         
-        .header img {
-            height: 60px;
-            transform: scale(1);
-            transition: transform 0.3s ease;
-            z-index: 1;
-            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
+        .sidebar-header {
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
         }
         
-        .header img:hover {
-            transform: scale(1.1) rotate(5deg);
-        }
-        
-        .header h1 {
-            font-size: 2.2rem;
-            margin: 0;
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
             color: white;
-            font-weight: 600;
-            z-index: 1;
-            position: relative;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .header h1::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 0;
-            width: 0;
-            height: 3px;
-            background-color: white;
-            transition: width 0.3s ease;
-        }
-        
-        .header h1:hover::after {
-            width: 100%;
-        }
-        
-        .model-selector {
-            margin-bottom: 25px;
-            background-color: var(--light-grey);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .model-selector:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .model-selector label {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: var(--medium-grey);
-            display: block;
-            transition: color 0.3s ease, transform 0.3s ease;
-        }
-        
-        .model-selector:hover label {
-            color: var(--primary-color);
-            transform: translateX(3px);
-        }
-        
-        .form-select {
-            border: 1px solid #ddd;
-            padding: 12px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            background-color: white;
-            cursor: pointer;
-            position: relative;
-            z-index: 1;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-        
-        .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(138, 18, 115, 0.2);
-            outline: none;
-        }
-        
-        .info-alert {
-            background-color: rgba(138, 18, 115, 0.1);
-            border-left: 4px solid var(--primary-color);
-            padding: 15px;
-            margin-bottom: 25px;
-            border-radius: 6px;
-            color: var(--medium-grey);
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease;
-        }
-        
-        .info-alert:hover {
-            transform: translateY(-2px);
-        }
-        
-        .info-alert::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background-color: var(--primary-color);
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
-        
-        .info-alert:hover::before {
-            transform: translateX(0);
-        }
-        
-        .typing-area {
-            margin: 20px 0;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            min-height: 150px;
-            background-color: white;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .typing-area:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(138, 18, 115, 0.2);
-            transform: translateY(-2px);
-        }
-        
-        .typing-area::after {
-            content: '';
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background-color: var(--light-grey);
-            transition: transform 0.3s ease, background-color 0.3s ease;
-            z-index: -1;
-            opacity: 0.5;
-        }
-        
-        .typing-area:focus::after {
-            transform: scale(20);
-            background-color: rgba(138, 18, 115, 0.05);
-        }
-        
-        .keystroke-data {
-            margin-top: 15px;
-            font-size: 0.95rem;
-            color: var(--secondary-color);
-            display: flex;
-            justify-content: space-between;
-            transition: transform 0.3s ease;
-        }
-        
-        .keystroke-data > div {
-            position: relative;
-            padding: 5px 10px;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-        
-        .keystroke-data > div:hover {
-            background-color: rgba(138, 18, 115, 0.1);
-            transform: translateY(-2px);
-        }
-        
-        .btn-primary, .btn-secondary {
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            z-index: 1;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-        }
-        
-        .btn-primary::before, .btn-secondary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.7s ease;
-            z-index: -1;
-        }
-        
-        .btn-primary:hover::before, .btn-secondary:hover::before {
-            left: 100%;
-        }
-        
-        .btn-primary:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(138, 18, 115, 0.3);
-        }
-        
-        .btn-secondary {
-            background-color: var(--medium-grey);
-        }
-        
-        .btn-secondary:hover {
-            background-color: var(--dark-grey);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .results {
-            margin-top: 30px;
-            padding: 25px;
-            border-radius: 8px;
-            display: none;
-            background-color: var(--light-grey);
-            transition: all 0.5s ease;
-            transform: translateY(20px);
-            opacity: 0;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .results.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        
-        .results h3 {
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            font-weight: 600;
-            position: relative;
-            display: inline-block;
-        }
-        
-        .results h3::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 50%;
-            height: 3px;
-            background-color: var(--primary-color);
-            transition: width 0.3s ease;
-        }
-        
-        .results h3:hover::after {
-            width: 100%;
-        }
-        
-        .result-box {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
             display: flex;
             align-items: center;
-            transition: all 0.3s ease;
-            transform: translateY(0);
-            border-left: 3px solid transparent;
         }
         
-        .result-box:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-            border-left: 3px solid var(--primary-color);
+        .sidebar-logo i {
+            margin-right: 10px;
+            color: #3498db;
         }
         
-        .result-icon {
-            font-size: 2rem;
-            margin-right: 20px;
-            color: var(--primary-color);
-            width: 50px;
-            height: 50px;
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 12px 20px;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: #3498db;
+        }
+        
+        .sidebar-menu i {
+            margin-right: 10px;
+            width: 20px;
             text-align: center;
-            transition: all 0.3s ease;
+        }
+        
+        .content-wrapper {
+            flex: 1;
+            margin-left: 260px;
+            padding: 0;
+        }
+        
+        .top-navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        
+        .navbar-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-menu .dropdown-toggle {
+            background: none;
+            border: none;
+            color: #555;
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #3498db;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        
-        .result-box:hover .result-icon {
-            transform: scale(1.2) rotate(10deg);
-            color: var(--secondary-color);
-        }
-        
-        .result-content {
-            flex: 1;
-        }
-        
-        .result-content h5 {
-            margin: 0 0 8px 0;
-            color: var(--medium-grey);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: color 0.3s ease;
-        }
-        
-        .result-box:hover .result-content h5 {
-            color: var(--primary-color);
-        }
-        
-        .result-content p {
-            font-size: 1.4rem;
-            margin: 0;
             font-weight: 600;
-            color: var(--dark-grey);
-            transition: transform 0.3s ease;
+            margin-right: 10px;
         }
         
-        .result-box:hover .result-content p {
-            transform: translateX(5px);
+        .main-content {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
-        /* Particle background */
-        #particles-js {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
         }
         
-        /* Loading animation */
-        .loading-animation {
-            display: inline-block;
-            position: relative;
-            width: 24px;
-            height: 24px;
-        }
-        
-        .loading-animation div {
-            box-sizing: border-box;
-            display: block;
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            border: 3px solid #fff;
-            border-radius: 50%;
-            animation: loading-animation 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-            border-color: #fff transparent transparent transparent;
-        }
-        
-        .loading-animation div:nth-child(1) {
-            animation-delay: -0.45s;
-        }
-        
-        .loading-animation div:nth-child(2) {
-            animation-delay: -0.3s;
-        }
-        
-        .loading-animation div:nth-child(3) {
-            animation-delay: -0.15s;
-        }
-        
-        @keyframes loading-animation {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-        
-        /* Typing indicator animation */
-        @keyframes blink {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0;
-            }
-        }
-        
-        .typing-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 20px;
-            background-color: var(--primary-color);
-            margin-left: 5px;
-            animation: blink 1s infinite;
-            vertical-align: middle;
-        }
-        
-        /* Pulse animation for action buttons */
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(138, 18, 115, 0.4);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(138, 18, 115, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(138, 18, 115, 0);
-            }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        /* Progress bar */
-        .progress-bar {
-            height: 4px;
-            background-color: #e9ecef;
-            border-radius: 2px;
-            margin: 10px 0;
-            overflow: hidden;
-        }
-        
-        .progress-bar-inner {
-            height: 100%;
-            width: 0;
-            background-color: var(--primary-color);
-            transition: width 0.3s ease;
-        }
-        
-        /* Keyframe highlight animation */
-        @keyframes highlight {
-            0% {
-                background-color: rgba(138, 18, 115, 0.2);
-            }
-            100% {
-                background-color: transparent;
-            }
-        }
-        
-        .highlight {
-            animation: highlight 1s ease;
-        }
-        
-        /* Styles pour le formulaire de feedback */
-        .feedback-section {
-            background-color: var(--light-grey);
-            border-radius: 12px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .feedback-section .card {
-            border: none;
-            background-color: transparent;
-        }
-        
-        .feedback-section .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 8px 8px 0 0;
-            padding: 15px 20px;
-        }
-        
-        .feedback-section .card-body {
-            padding: 20px;
+        .app-panel {
             background-color: white;
-            border-radius: 0 0 8px 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 30px;
         }
         
-        .form-check-input:checked {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .model-selector {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .info-section {
+            background-color: #f1f9ff;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+        
+        .typing-area {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+        
+        .typing-area:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            border: none;
+            padding: 10px 20px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(52, 152, 219, 0.1);
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(52, 152, 219, 0.2);
+        }
+        
+        .results-panel {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 25px;
+            overflow: hidden;
+        }
+        
+        .results-panel-header {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+        }
+        
+        .results-panel-body {
+            padding: 20px;
+        }
+        
+        .result-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .result-card-header {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+        }
+        
+        .result-card-body {
+            padding: 15px;
+        }
+        
+        .keystroke-stats {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .keystroke-stat-item {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px 15px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+        }
+        
+        .keystroke-stat-label {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .keystroke-stat-value {
+            font-weight: 600;
+            color: #2c3e50;
         }
     </style>
 </head>
 <body>
-    <div id="particles-js"></div>
-    
-    <div class="container animate__animated animate__fadeIn">
-        <div class="header">
-            <div class="d-flex align-items-center">
-                <img src="{{ url_for('static', filename='greyc.png') }}" alt="GREYC Logo" class="me-3">
-                <h1>Keystroke Analysis</h1>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fas fa-keyboard"></i> KeyAnalytics
+                </div>
             </div>
-            <div>
-                <a href="/contribute" class="nav-link">Contribute</a>
-            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="/" class="active">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="/contribute">
+                        <i class="fas fa-paper-plane"></i> Contribute
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </a>
+                </li>
+                <li>
+                    <a href="#">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </li>
+            </ul>
         </div>
         
-        <div class="alert alert-warning mb-4">
-            <i class="fas fa-hands-helping me-2"></i>
-            <strong>Participez à notre étude!</strong> Nous avons besoin de votre aide pour améliorer nos modèles.
-            <a href="/contribute" class="btn btn-sm btn-primary ms-3">Contribuer avec vos données</a>
-        </div>
-        
-        <div class="model-selector animate__animated animate__fadeIn animate__delay-1s">
-            <label for="model-select" class="form-label">Select Model:</label>
-            <select id="model-select" class="form-select">
-                <option value="model1">Model 1 (Statistical Features)</option>
-                <option value="model2" selected>Model 2 (Histogram Features)</option>
-                <option value="model3">Model 3 (Combined Features)</option>
-            </select>
-            <div class="progress-bar mt-3" id="model-progress">
-                <div class="progress-bar-inner" style="width: 0%"></div>
-            </div>
-        </div>
-        
-        <div class="info-alert animate__animated animate__fadeIn animate__delay-1s">
-            <p class="mb-0">Type freely in the area below. Our model will analyze your keystroke patterns to predict your profile.</p>
-        </div>
-        
-        <div class="typing-area animate__animated animate__fadeIn animate__delay-1s" id="typing-area" contenteditable="true"></div>
-        
-        <div class="keystroke-data animate__animated animate__fadeIn animate__delay-1s">
-            <div id="keystrokes-count">Keystrokes: 0</div>
-            <div id="timing-info">Awaiting keystrokes...<span class="typing-indicator" id="typing-indicator" style="display: none;"></span></div>
-        </div>
-        
-        <div class="d-flex justify-content-between mt-4 animate__animated animate__fadeIn animate__delay-2s">
-            <button id="clear-btn" class="btn btn-secondary btn-lg">
-                <i class="fas fa-trash-alt me-2"></i>Clear
-            </button>
-            <button id="analyze-btn" class="btn btn-primary btn-lg pulse" disabled>
-                <i class="fas fa-chart-line me-2"></i>Analyze Keystrokes
-            </button>
-        </div>
-        
-        <div class="results mt-4" id="results">
-            <h3 class="animate__animated animate__fadeIn">Analysis Results</h3>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="result-box animate__animated animate__fadeInUp animate__delay-1s">
-                        <div class="result-icon">
+        <!-- Content Area -->
+        <div class="content-wrapper">
+            <div class="top-navbar">
+                <div class="navbar-title">
+                    <i class="fas fa-tachometer-alt"></i> Keystroke Analysis Dashboard
+                </div>
+                <div class="user-menu">
+                    <button class="dropdown-toggle">
+                        <div class="user-avatar">
                             <i class="fas fa-user"></i>
                         </div>
-                        <div class="result-content">
-                            <h5>Age</h5>
-                            <p id="age-result">-</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="result-box animate__animated animate__fadeInUp animate__delay-2s">
-                        <div class="result-icon">
-                            <i class="fas fa-venus-mars"></i>
-                        </div>
-                        <div class="result-content">
-                            <h5>Gender</h5>
-                            <p id="gender-result">-</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="result-box animate__animated animate__fadeInUp animate__delay-3s">
-                        <div class="result-icon">
-                            <i class="fas fa-hand-paper"></i>
-                        </div>
-                        <div class="result-content">
-                            <h5>Handedness</h5>
-                            <p id="handedness-result">-</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="result-box animate__animated animate__fadeInUp animate__delay-4s">
-                        <div class="result-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="result-content">
-                            <h5>Class</h5>
-                            <p id="class-result">-</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Ajout de la section de validation des prédictions -->
-        <div class="feedback-section mt-4 mb-5 animate__animated animate__fadeIn" id="feedback-section" style="display: none;">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Ces prédictions sont-elles correctes?</h5>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="feedbackChoice" id="correctChoice" value="correct">
-                            <label class="form-check-label" for="correctChoice">Oui, elles sont correctes</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="feedbackChoice" id="incorrectChoice" value="incorrect">
-                            <label class="form-check-label" for="incorrectChoice">Non, je vais corriger</label>
-                        </div>
-                    </div>
-                    
-                    <div id="correctionForm" class="mt-3" style="display: none;">
-                        <h6 class="border-bottom pb-2 mb-3">Veuillez fournir les informations correctes :</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="actualAge" class="form-label">Votre âge:</label>
-                                    <input type="number" class="form-control" id="actualAge" min="1" max="120">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Votre genre:</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="actualGender" id="actualGenderM" value="M">
-                                        <label class="form-check-label" for="actualGenderM">Homme</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="actualGender" id="actualGenderF" value="F">
-                                        <label class="form-check-label" for="actualGenderF">Femme</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Votre main dominante:</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="actualHand" id="actualHandR" value="R">
-                                        <label class="form-check-label" for="actualHandR">Droitier</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="actualHand" id="actualHandL" value="L">
-                                        <label class="form-check-label" for="actualHandL">Gaucher</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Votre classe:</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="actualClass" id="actualClassS" value="S">
-                                        <label class="form-check-label" for="actualClassS">Étudiant</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="actualClass" id="actualClassP" value="P">
-                                        <label class="form-check-label" for="actualClassP">Professionnel</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button id="submitFeedbackBtn" class="btn btn-primary btn-lg w-100 mt-3">
-                        <i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback
+                        <span>User</span>
                     </button>
                 </div>
             </div>
-        </div>
-        
-        <div class="text-center mt-5 mb-3 animate__animated animate__fadeInUp animate__delay-5s">
-            <div class="card bg-light p-4">
-                <h3 class="mb-3">Participez à notre projet!</h3>
-                <p class="mb-3">Aidez-nous à améliorer nos modèles en contribuant avec vos données de frappe clavier.</p>
-                <a href="/contribute" class="btn btn-lg btn-primary w-100 pulse">
-                    <i class="fas fa-hands-helping me-2"></i>Contribuer vos données
-                </a>
+            
+            <div class="main-content">
+                <div class="page-title">Keystroke Pattern Analysis</div>
+                
+                <div class="app-panel">
+                    <div class="info-section">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x text-primary"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">Analyse de frappe clavier</h5>
+                                <p class="mb-0">Cette application analyse votre façon de taper au clavier pour prédire votre âge, genre, main dominante et votre classe (étudiant ou professionnel).</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="model-selector">
+                        <div class="panel-title">Sélection du modèle d'analyse</div>
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <label for="modelSelector" class="form-label">Choisissez le modèle à utiliser pour l'analyse:</label>
+                                <select class="form-select" id="modelSelector">
+                                    <option value="model1">Modèle 1: Analyse statistique (caractéristiques basiques)</option>
+                                    <option value="model2" selected>Modèle 2: Analyse par histogramme (distribution temporelle)</option>
+                                    <option value="model3">Modèle 3: Analyse combinée (caractéristiques avancées)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-grid gap-2 mt-4">
+                                    <a href="/contribute" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane me-2"></i>Contribuer
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel-title">Saisie de texte</div>
+                    
+                    <div class="mb-3">
+                        <label for="typingArea" class="form-label">Tapez quelque chose pour analyser votre frappe au clavier (minimum 50 caractères):</label>
+                        <textarea class="form-control typing-area" id="typingArea" rows="6" placeholder="Commencez à taper ici..."></textarea>
+                        <div class="text-muted mt-2">
+                            <small>Caractères: <span id="charCount">0</span>/50 minimum</small>
+                        </div>
+                    </div>
+                    
+                    <div class="keystroke-stats mb-4">
+                        <div class="keystroke-stat-item">
+                            <div class="keystroke-stat-label">Frappes</div>
+                            <div class="keystroke-stat-value" id="keystrokeCount">0</div>
+                        </div>
+                        <div class="keystroke-stat-item">
+                            <div class="keystroke-stat-label">Temps moyen</div>
+                            <div class="keystroke-stat-value" id="avgKeystrokeTime">0 ms</div>
+                        </div>
+                        <div class="keystroke-stat-item">
+                            <div class="keystroke-stat-label">Temps min</div>
+                            <div class="keystroke-stat-value" id="minKeystrokeTime">0 ms</div>
+                        </div>
+                        <div class="keystroke-stat-item">
+                            <div class="keystroke-stat-label">Temps max</div>
+                            <div class="keystroke-stat-value" id="maxKeystrokeTime">0 ms</div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button id="analyzeBtn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i>Analyser ma frappe
+                        </button>
+                    </div>
+                    
+                    <div id="resultsContainer" class="results-panel" style="display: none;">
+                        <div class="results-panel-header">
+                            <i class="fas fa-chart-pie me-2"></i>Résultats de l'analyse
+                        </div>
+                        <div class="results-panel-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="result-card">
+                                        <div class="result-card-header">
+                                            <i class="fas fa-user me-2"></i>Votre profil
+                                        </div>
+                                        <div class="result-card-body">
+                                            <div class="row text-center">
+                                                <div class="col-6 mb-3">
+                                                    <h6 class="text-muted mb-2">Âge</h6>
+                                                    <div class="fs-2 fw-bold text-primary" id="predictedAge">--</div>
+                                                </div>
+                                                <div class="col-6 mb-3">
+                                                    <h6 class="text-muted mb-2">Genre</h6>
+                                                    <div class="fs-2 fw-bold text-primary" id="predictedGender">--</div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h6 class="text-muted mb-2">Main dominante</h6>
+                                                    <div class="fs-2 fw-bold text-primary" id="predictedHand">--</div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h6 class="text-muted mb-2">Classe</h6>
+                                                    <div class="fs-2 fw-bold text-primary" id="predictedClass">--</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="result-card">
+                                        <div class="result-card-header">
+                                            <i class="fas fa-check-circle me-2"></i>Confirmation
+                                        </div>
+                                        <div class="result-card-body">
+                                            <p>Ces prédictions sont-elles correctes? Aidez-nous à améliorer nos modèles!</p>
+                                            <form id="feedbackForm">
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <label for="actualAge" class="form-label">Votre âge réel:</label>
+                                                        <input type="number" class="form-control" id="actualAge" min="1" max="120">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Votre genre:</label>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="actualGender" id="actualGenderM" value="M">
+                                                            <label class="form-check-label" for="actualGenderM">Homme</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="actualGender" id="actualGenderF" value="F">
+                                                            <label class="form-check-label" for="actualGenderF">Femme</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Votre main dominante:</label>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="actualHand" id="actualHandR" value="R">
+                                                            <label class="form-check-label" for="actualHandR">Droitier</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="actualHand" id="actualHandL" value="L">
+                                                            <label class="form-check-label" for="actualHandL">Gaucher</label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Votre classe:</label>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="actualClass" id="actualClassS" value="S">
+                                                            <label class="form-check-label" for="actualClassS">Étudiant</label>
+                                                        </div>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="radio" name="actualClass" id="actualClassP" value="P">
+                                                            <label class="form-check-label" for="actualClassP">Professionnel</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary w-100">
+                                                    <i class="fas fa-save me-2"></i>Enregistrer mes informations
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize particles.js
-            particlesJS('particles-js', {
-                particles: {
-                    number: { value: 80, density: { enable: true, value_area: 800 } },
-                    color: { value: "#8A1273" },
-                    shape: { type: "circle" },
-                    opacity: { value: 0.5, random: false },
-                    size: { value: 3, random: true },
-                    line_linked: {
-                        enable: true,
-                        distance: 150,
-                        color: "#8A1273",
-                        opacity: 0.4,
-                        width: 1
-                    },
-                    move: {
-                        enable: true,
-                        speed: 2,
-                        direction: "none",
-                        random: false,
-                        straight: false,
-                        out_mode: "out",
-                        bounce: false
-                    }
-                },
-                interactivity: {
-                    detect_on: "canvas",
-                    events: {
-                        onhover: { enable: true, mode: "repulse" },
-                        onclick: { enable: true, mode: "push" },
-                        resize: true
-                    }
-                },
-                retina_detect: true
-            });
+            const typingArea = document.getElementById('typingArea');
+            const modelSelector = document.getElementById('modelSelector');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const charCount = document.getElementById('charCount');
+            const keystrokeCount = document.getElementById('keystrokeCount');
+            const avgKeystrokeTime = document.getElementById('avgKeystrokeTime');
+            const minKeystrokeTime = document.getElementById('minKeystrokeTime');
+            const maxKeystrokeTime = document.getElementById('maxKeystrokeTime');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const predictedAge = document.getElementById('predictedAge');
+            const predictedGender = document.getElementById('predictedGender');
+            const predictedHand = document.getElementById('predictedHand');
+            const predictedClass = document.getElementById('predictedClass');
+            const feedbackForm = document.getElementById('feedbackForm');
             
-            const typingArea = document.getElementById('typing-area');
-            const clearBtn = document.getElementById('clear-btn');
-            const analyzeBtn = document.getElementById('analyze-btn');
-            const keystrokesCount = document.getElementById('keystrokes-count');
-            const timingInfo = document.getElementById('timing-info');
-            const resultsDiv = document.getElementById('results');
-            const typingIndicator = document.getElementById('typing-indicator');
-            const modelProgress = document.querySelector('#model-progress .progress-bar-inner');
-            
-            let keystrokes = [];
+            // Keystroke timing data array
+            let keystrokeData = [];
             let lastKeystrokeTime = null;
+            let predictedData = null;
             
-            // Simulate model loading
-            setTimeout(() => {
-                modelProgress.style.width = "100%";
-            }, 500);
-            
-            typingArea.addEventListener('focus', function() {
-                typingIndicator.style.display = 'inline-block';
+            // Track character count
+            typingArea.addEventListener('input', function() {
+                charCount.textContent = typingArea.value.length;
             });
             
-            typingArea.addEventListener('blur', function() {
-                typingIndicator.style.display = 'none';
-            });
-            
+            // Capture keystroke timing
             typingArea.addEventListener('keydown', function(event) {
-                if (event.key.length === 1 || event.key === 'Backspace') {
-                    const currentTime = performance.now() * 1000; // Convert to microseconds
+                const currentTime = performance.now();
+                
+                if (lastKeystrokeTime !== null) {
+                    const timeBetweenKeystrokes = currentTime - lastKeystrokeTime;
+                    // Store in milliseconds (rounded) instead of microseconds
+                    keystrokeData.push(Math.round(timeBetweenKeystrokes));
                     
-                    // Highlight effect
-                    typingArea.classList.add('highlight');
-                    setTimeout(() => {
-                        typingArea.classList.remove('highlight');
-                    }, 200);
-                    
-                    if (lastKeystrokeTime !== null) {
-                        const interval = currentTime - lastKeystrokeTime;
-                        keystrokes.push(interval);
-                        updateKeystrokeInfo();
-                    }
-                    
-                    lastKeystrokeTime = currentTime;
-                    
-                    if (keystrokes.length > 0) {
-                        analyzeBtn.disabled = false;
-                        analyzeBtn.classList.add('pulse');
-                    }
+                    // Update keystroke statistics
+                    updateKeystrokeStats();
                 }
+                
+                lastKeystrokeTime = currentTime;
             });
             
-            function updateKeystrokeInfo() {
-                // Create "typing" animation
-                typingIndicator.style.display = 'inline-block';
-                
-                keystrokesCount.textContent = `Keystrokes: ${keystrokes.length}`;
-                
-                if (keystrokes.length > 0) {
-                    const avgTiming = keystrokes.reduce((a, b) => a + b, 0) / keystrokes.length;
-                    timingInfo.innerHTML = `Average timing: ${Math.round(avgTiming / 1000)} ms <span class="typing-indicator"></span>`;
+            // Update keystroke statistics
+            function updateKeystrokeStats() {
+                if (keystrokeData.length > 0) {
+                    // No need to convert since values are already in ms
+                    const msData = keystrokeData;
                     
-                    // Update progress
-                    const progress = Math.min(keystrokes.length * 10, 100);
-                    modelProgress.style.width = `${progress}%`;
+                    keystrokeCount.textContent = keystrokeData.length;
+                    
+                    const avg = msData.reduce((sum, val) => sum + val, 0) / msData.length;
+                    avgKeystrokeTime.textContent = avg.toFixed(1) + ' ms';
+                    
+                    const min = Math.min(...msData);
+                    minKeystrokeTime.textContent = min.toFixed(1) + ' ms';
+                    
+                    const max = Math.max(...msData);
+                    maxKeystrokeTime.textContent = max.toFixed(1) + ' ms';
                 }
             }
             
-            clearBtn.addEventListener('click', function() {
-                typingArea.textContent = '';
-                keystrokes = [];
-                lastKeystrokeTime = null;
-                keystrokesCount.textContent = 'Keystrokes: 0';
-                timingInfo.textContent = 'Awaiting keystrokes...';
-                analyzeBtn.disabled = true;
-                analyzeBtn.classList.remove('pulse');
-                resultsDiv.style.display = 'none';
-                resultsDiv.classList.remove('show');
-                
-                // Reset progress
-                modelProgress.style.width = "0%";
-                
-                // Add animation to clear button
-                clearBtn.classList.add('animate__animated', 'animate__headShake');
-                setTimeout(() => {
-                    clearBtn.classList.remove('animate__animated', 'animate__headShake');
-                }, 1000);
-            });
-            
-            // Add event listeners for the feedback form
-            const correctChoice = document.getElementById('correctChoice');
-            const incorrectChoice = document.getElementById('incorrectChoice');
-            const correctionForm = document.getElementById('correctionForm');
-            const feedbackSection = document.getElementById('feedback-section');
-            const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
-            
-            // Show/hide correction form based on feedback choice
-            correctChoice.addEventListener('change', function() {
-                correctionForm.style.display = 'none';
-            });
-            
-            incorrectChoice.addEventListener('change', function() {
-                correctionForm.style.display = 'block';
-            });
-            
-            // Modify the analyze keystrokes button behavior to show feedback section
+            // Handle analyze button click
             analyzeBtn.addEventListener('click', function() {
-                if (keystrokes.length < 10) {
-                    alert('Please type more characters for a better analysis');
+                if (typingArea.value.length < 50) {
+                    alert('Veuillez taper au moins 50 caractères pour une analyse précise.');
                     return;
                 }
                 
-                const modelSelect = document.getElementById('model-select');
-                const selectedModel = modelSelect.value;
+                if (keystrokeData.length < 10) {
+                    alert('Pas assez de données de frappe. Veuillez taper plus naturellement.');
+                    return;
+                }
                 
+                // Show loading state
                 analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyse en cours...';
                 
-                // Loading animation
-                analyzeBtn.innerHTML = `
-                    <div class="spinner-border spinner-border-sm text-light me-2"></div>
-                    Analyzing...
-                `;
+                // Prepare data to send
+                const data = {
+                    keystrokes: keystrokeData,
+                    model: modelSelector.value
+                };
                 
-                // Animate progress
-                modelProgress.style.width = "100%";
-                
-                // Send keystroke data to server
+                // Send data to the server for prediction
                 fetch('/api/predict', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        keystrokes: keystrokes,
-                        model: selectedModel
-                    }),
+                    body: JSON.stringify(data),
                 })
                 .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert('Error: ' + data.error);
-                    } else {
-                        // Display results with animations
-                        document.getElementById('age-result').textContent = data.age;
-                        document.getElementById('gender-result').textContent = data.gender === 'M' ? 'Male' : 'Female';
-                        document.getElementById('handedness-result').textContent = data.handedness === 'R' ? 'Right-handed' : 'Left-handed';
-                        document.getElementById('class-result').textContent = data.class === 'S' ? 'Student' : 'Professional';
-                        
-                        resultsDiv.style.display = 'block';
-                        setTimeout(() => {
-                            resultsDiv.classList.add('show');
-                            
-                            // Show feedback section after showing results
-                            feedbackSection.style.display = 'block';
-                        }, 10);
-                        
-                        // Scroll to results
-                        setTimeout(() => {
-                            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }, 500);
-                    }
+                .then(result => {
+                    // Store prediction result
+                    predictedData = result;
+                    
+                    // Update UI with predictions
+                    predictedAge.textContent = result.age;
+                    predictedGender.textContent = result.gender === 'M' ? 'Homme' : 'Femme';
+                    predictedHand.textContent = result.handedness === 'R' ? 'Droitier' : 'Gaucher';
+                    predictedClass.textContent = result.class === 'S' ? 'Étudiant' : 'Professionnel';
+                    
+                    // Show results
+                    resultsContainer.style.display = 'block';
+                    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+                    
+                    // Reset button
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyser ma frappe';
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred during analysis');
-                })
-                .finally(() => {
+                    alert('Une erreur est survenue lors de l\'analyse. Veuillez réessayer.');
+                    
+                    // Reset button
                     analyzeBtn.disabled = false;
-                    analyzeBtn.innerHTML = '<i class="fas fa-chart-line me-2"></i>Analyze Keystrokes';
+                    analyzeBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Analyser ma frappe';
                 });
             });
             
-            // Handle feedback submission
-            submitFeedbackBtn.addEventListener('click', function() {
-                const isCorrect = correctChoice.checked;
-                if (!correctChoice.checked && !incorrectChoice.checked) {
-                    alert('Veuillez indiquer si les prédictions sont correctes ou non.');
+            // Handle feedback form submission
+            feedbackForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                if (!predictedData) {
+                    alert('Veuillez d\'abord analyser votre frappe au clavier.');
                     return;
                 }
                 
-                // Show loading spinner
-                submitFeedbackBtn.innerHTML = '<div class="spinner-border spinner-border-sm text-light me-2"></div>Envoi en cours...';
-                submitFeedbackBtn.disabled = true;
+                // Get actual values from form
+                const actualAge = document.getElementById('actualAge').value;
+                const actualGender = document.querySelector('input[name="actualGender"]:checked')?.value;
+                const actualHand = document.querySelector('input[name="actualHand"]:checked')?.value;
+                const actualClass = document.querySelector('input[name="actualClass"]:checked')?.value;
                 
-                let feedbackData = {
-                    keystrokes: keystrokes,
-                    text: typingArea.textContent,
-                    model: document.getElementById('model-select').value,
+                if (!actualAge || !actualGender || !actualHand || !actualClass) {
+                    alert('Veuillez remplir toutes les informations.');
+                    return;
+                }
+                
+                // Check if predictions are correct
+                const isAgeCorrect = Math.abs(parseInt(predictedData.age) - parseInt(actualAge)) <= 5; // Allow 5 years margin
+                const isGenderCorrect = predictedData.gender === actualGender;
+                const isHandCorrect = predictedData.handedness === actualHand;
+                const isClassCorrect = predictedData.class === actualClass;
+                
+                const isCorrect = isAgeCorrect && isGenderCorrect && isHandCorrect && isClassCorrect;
+                
+                // Prepare data to send
+                const contributionData = {
+                    keystrokes: keystrokeData,
+                    text: typingArea.value,
+                    model: modelSelector.value,
                     predicted: {
-                        age: document.getElementById('age-result').textContent,
-                        gender: document.getElementById('gender-result').textContent === 'Male' ? 'M' : 'F',
-                        handedness: document.getElementById('handedness-result').textContent === 'Right-handed' ? 'R' : 'L',
-                        class: document.getElementById('class-result').textContent === 'Student' ? 'S' : 'P'
+                        age: predictedData.age,
+                        gender: predictedData.gender,
+                        handedness: predictedData.handedness,
+                        class: predictedData.class
                     },
-                    isCorrect: isCorrect
-                };
-                
-                // If predictions were incorrect, add actual values
-                if (!isCorrect) {
-                    const actualAge = document.getElementById('actualAge').value;
-                    const actualGender = document.querySelector('input[name="actualGender"]:checked')?.value;
-                    const actualHand = document.querySelector('input[name="actualHand"]:checked')?.value;
-                    const actualClass = document.querySelector('input[name="actualClass"]:checked')?.value;
-                    
-                    // Validate inputs
-                    if (!actualAge || !actualGender || !actualHand || !actualClass) {
-                        alert('Veuillez remplir tous les champs de correction.');
-                        submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback';
-                        submitFeedbackBtn.disabled = false;
-                        return;
-                    }
-                    
-                    feedbackData.actual = {
+                    isCorrect: isCorrect,
+                    actual: {
                         age: actualAge,
                         gender: actualGender,
                         handedness: actualHand,
                         class: actualClass
-                    };
-                }
+                    }
+                };
                 
-                // Submit feedback to the server
+                // Submit data to the server
                 fetch('/api/contribute', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(feedbackData),
+                    body: JSON.stringify(contributionData),
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Show success message
-                        feedbackSection.innerHTML = `
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <strong>Merci pour votre contribution!</strong> Vos données ont été enregistrées avec succès.
-                            </div>
-                        `;
+                        alert('Merci pour votre contribution! Vos informations ont été enregistrées.');
+                        
+                        // Reset form
+                        feedbackForm.reset();
                     } else {
                         alert('Erreur: ' + data.error);
-                        submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback';
-                        submitFeedbackBtn.disabled = false;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Une erreur est survenue lors de l\'envoi de votre feedback.');
-                    submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback';
-                    submitFeedbackBtn.disabled = false;
+                    alert('Une erreur est survenue lors de l\'envoi de vos données.');
                 });
-            });
-            
-            // Add interaction to model selector
-            document.getElementById('model-select').addEventListener('change', function() {
-                // Reset progress and animate on model change
-                modelProgress.style.width = "0%";
-                setTimeout(() => {
-                    modelProgress.style.width = "100%";
-                }, 300);
-                
-                // Add subtle animation to model change
-                this.classList.add('animate__animated', 'animate__pulse');
-                setTimeout(() => {
-                    this.classList.remove('animate__animated', 'animate__pulse');
-                }, 1000);
-            });
-            
-            // Initial animation for the typing area
-            typingArea.addEventListener('click', function() {
-                if (!this.classList.contains('clicked')) {
-                    this.classList.add('animate__animated', 'animate__pulse', 'clicked');
-                }
             });
         });
     </script>

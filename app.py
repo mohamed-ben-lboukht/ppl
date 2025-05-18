@@ -118,8 +118,8 @@ def calculate_histogram_features(timing_data, num_bins=20):
     if len(timing_data) < 5:  # Need minimum keystrokes for meaningful analysis
         return None
     
-    # Convert to milliseconds for better numerical stability
-    timing_ms = [t / 1000 for t in timing_data]
+    # Values are already in milliseconds, no need to convert
+    timing_ms = timing_data
     
     # Create histogram with adaptive bin edges based on data range
     min_time = min(timing_ms)
@@ -146,8 +146,8 @@ def calculate_basic_features(timing_data):
     if len(timing_data) < 5:  # Need minimum keystrokes
         return None
     
-    # Convert to milliseconds
-    timing_ms = [t / 1000 for t in timing_data]
+    # Values are already in milliseconds, no need to convert
+    timing_ms = timing_data
     
     # Calculate basic statistics
     mean = np.mean(timing_ms)
@@ -293,9 +293,9 @@ def contribute_data():
         # Add keystroke statistics for easier analysis
         keystroke_stats = {
             'count': len(data['keystrokes']),
-            'avg_time': sum(data['keystrokes']) / len(data['keystrokes']) / 1000,  # in ms
-            'min_time': min(data['keystrokes']) / 1000,  # in ms
-            'max_time': max(data['keystrokes']) / 1000,  # in ms
+            'avg_time': sum(data['keystrokes']) / len(data['keystrokes']),  # already in ms
+            'min_time': min(data['keystrokes']),  # already in ms
+            'max_time': max(data['keystrokes']),  # already in ms
         }
         data['keystroke_stats'] = keystroke_stats
         
