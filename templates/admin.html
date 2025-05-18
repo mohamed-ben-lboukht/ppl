@@ -171,6 +171,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const dataContainer = document.getElementById('dataContainer');
@@ -265,6 +266,65 @@
                                     <div class="col-md-6">
                                         <p><strong>Keystrokes:</strong> ${item.keystrokes.length} recorded</p>
                                         <p><strong>ID:</strong> ${item.id || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6>Keystroke Data</h6>
+                                            <button class="btn btn-sm btn-outline-secondary toggle-keystrokes" data-target="keystrokes-${index}">
+                                                <i class="fas fa-keyboard me-1"></i> View Keystrokes
+                                            </button>
+                                        </div>
+                                        <div id="keystrokes-${index}" style="display:none">
+                                            <div class="card mb-3">
+                                                <div class="card-header">
+                                                    <h6 class="mb-0">Keystroke Timing</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <canvas id="keystrokeChart-${index}" width="100%" height="150"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="card mb-3">
+                                                <div class="card-header">
+                                                    <h6 class="mb-0">Keystroke Distribution</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <canvas id="distributionChart-${index}" width="100%" height="150"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Keystroke Statistics</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <p><strong>Total Keystrokes:</strong> ${item.keystrokes.length}</p>
+                                                            <p><strong>Average Time:</strong> ${item.keystroke_stats ? Math.round(item.keystroke_stats.avg_time) : '?'} ms</p>
+                                                            <p><strong>Min Time:</strong> ${item.keystroke_stats ? Math.round(item.keystroke_stats.min_time) : '?'} ms</p>
+                                                            <p><strong>Max Time:</strong> ${item.keystroke_stats ? Math.round(item.keystroke_stats.max_time) : '?'} ms</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="card">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Text Sample</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="text-sample p-2 border rounded" style="max-height: 150px; overflow-y: auto;">
+                                                                ${item.text}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="json-content mt-2">
+                                                <pre>${JSON.stringify(item.keystrokes, null, 2)}</pre>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -400,6 +460,133 @@
                 document.body.appendChild(downloadAnchorNode);
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
+            });
+            
+            // Add event listeners to toggle keystroke visualization buttons
+            document.querySelectorAll('.toggle-keystrokes').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const target = document.getElementById(targetId);
+                    const isVisible = target.style.display !== 'none';
+                    
+                    target.style.display = isVisible ? 'none' : 'block';
+                    
+                    // If we're showing the data and the chart hasn't been created yet
+                    if (!isVisible) {
+                        const index = targetId.split('-')[1];
+                        const item = allData[index];
+                        
+                        if (item && item.keystrokes && item.keystrokes.length > 0) {
+                            // Create chart
+                            const canvasId = `keystrokeChart-${index}`;
+                            const ctx = document.getElementById(canvasId).getContext('2d');
+                            
+                            // Convert microseconds to milliseconds for better visualization
+                            const keystrokesMs = item.keystrokes.map(k => k / 1000);
+                            
+                            // Create line chart for keystroke timing
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: Array.from({length: keystrokesMs.length}, (_, i) => i + 1),
+                                    datasets: [{
+                                        label: 'Keystroke Timing (ms)',
+                                        data: keystrokesMs,
+                                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                        borderColor: 'rgba(37, 99, 235, 1)',
+                                        borderWidth: 2,
+                                        pointRadius: 3,
+                                        tension: 0.2
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Time (ms)'
+                                            }
+                                        },
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: 'Keystroke Number'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                            
+                            // Create histogram for keystroke distribution
+                            const distributionCanvasId = `distributionChart-${index}`;
+                            const distCtx = document.getElementById(distributionCanvasId).getContext('2d');
+                            
+                            // Create bins for histogram
+                            const createHistogram = (data, bins = 10) => {
+                                const min = Math.min(...data);
+                                const max = Math.max(...data);
+                                const binWidth = (max - min) / bins;
+                                
+                                // Create bin ranges
+                                const binRanges = Array.from({length: bins}, (_, i) => {
+                                    const start = min + i * binWidth;
+                                    const end = min + (i + 1) * binWidth;
+                                    return { 
+                                        start, 
+                                        end,
+                                        label: `${Math.round(start)}-${Math.round(end)}`
+                                    };
+                                });
+                                
+                                // Count items in each bin
+                                const counts = binRanges.map(range => {
+                                    return data.filter(d => d >= range.start && d < range.end).length;
+                                });
+                                
+                                return {
+                                    labels: binRanges.map(r => r.label),
+                                    data: counts
+                                };
+                            };
+                            
+                            const histogram = createHistogram(keystrokesMs);
+                            
+                            new Chart(distCtx, {
+                                type: 'bar',
+                                data: {
+                                    labels: histogram.labels,
+                                    datasets: [{
+                                        label: 'Distribution (ms)',
+                                        data: histogram.data,
+                                        backgroundColor: 'rgba(37, 99, 235, 0.6)',
+                                        borderColor: 'rgba(37, 99, 235, 1)',
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Frequency'
+                                            }
+                                        },
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: 'Time Interval (ms)'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
             });
             
             // Load data when page loads

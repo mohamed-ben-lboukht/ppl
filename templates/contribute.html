@@ -67,15 +67,6 @@
             </div>
         </div>
         
-        <div class="model-selector mb-4">
-            <label for="modelSelect" class="form-label">Select Model for Analysis:</label>
-            <select class="form-select" id="modelSelect">
-                <option value="model1">Model 1: Basic Statistics</option>
-                <option value="model2" selected>Model 2: Histogram Analysis</option>
-                <option value="model3">Model 3: Advanced Combined</option>
-            </select>
-        </div>
-        
         <div class="mb-3">
             <label for="typingArea" class="form-label">Type anything you'd like to share (minimum 50 characters):</label>
             <textarea class="form-control typing-area" id="typingArea" rows="5" placeholder="Start typing here..."></textarea>
@@ -85,19 +76,19 @@
         </div>
         
         <button id="analyzeBtn" class="btn btn-primary btn-lg w-100">
-            <i class="fas fa-keyboard me-2"></i>Analyze & Contribute
+            <i class="fas fa-keyboard me-2"></i>Contribuer
         </button>
         
         <div id="resultArea" class="result-area">
-            <h4>Analysis Results</h4>
+            <h4>Résultats d'analyse</h4>
             <div class="row">
                 <div class="col-md-6">
-                    <p>Predicted Age: <span id="predAge" class="prediction-value">--</span></p>
-                    <p>Predicted Gender: <span id="predGender" class="prediction-value">--</span></p>
+                    <p>Âge prédit: <span id="predAge" class="prediction-value">--</span></p>
+                    <p>Genre prédit: <span id="predGender" class="prediction-value">--</span></p>
                 </div>
                 <div class="col-md-6">
-                    <p>Predicted Handedness: <span id="predHand" class="prediction-value">--</span></p>
-                    <p>Predicted Class: <span id="predClass" class="prediction-value">--</span></p>
+                    <p>Main dominante prédite: <span id="predHand" class="prediction-value">--</span></p>
+                    <p>Classe prédite: <span id="predClass" class="prediction-value">--</span></p>
                 </div>
             </div>
             
@@ -123,42 +114,42 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="actualAge" class="form-label">Your Age:</label>
+                                        <label for="actualAge" class="form-label">Votre âge:</label>
                                         <input type="number" class="form-control" id="actualAge" min="1" max="120">
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Your Gender:</label>
+                                        <label class="form-label">Votre genre:</label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="actualGender" id="actualGenderM" value="M">
-                                            <label class="form-check-label" for="actualGenderM">Male</label>
+                                            <label class="form-check-label" for="actualGenderM">Homme</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="actualGender" id="actualGenderF" value="F">
-                                            <label class="form-check-label" for="actualGenderF">Female</label>
+                                            <label class="form-check-label" for="actualGenderF">Femme</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Your Handedness:</label>
+                                        <label class="form-label">Votre main dominante:</label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="actualHand" id="actualHandR" value="R">
-                                            <label class="form-check-label" for="actualHandR">Right-handed</label>
+                                            <label class="form-check-label" for="actualHandR">Droitier</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="actualHand" id="actualHandL" value="L">
-                                            <label class="form-check-label" for="actualHandL">Left-handed</label>
+                                            <label class="form-check-label" for="actualHandL">Gaucher</label>
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Your Class:</label>
+                                        <label class="form-label">Votre classe:</label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="actualClass" id="actualClassS" value="S">
-                                            <label class="form-check-label" for="actualClassS">Student</label>
+                                            <label class="form-check-label" for="actualClassS">Étudiant</label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="actualClass" id="actualClassP" value="P">
-                                            <label class="form-check-label" for="actualClassP">Professional</label>
+                                            <label class="form-check-label" for="actualClassP">Professionnel</label>
                                         </div>
                                     </div>
                                 </div>
@@ -185,7 +176,6 @@
             const correctionForm = document.getElementById('correctionForm');
             const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
             const charCount = document.getElementById('charCount');
-            const modelSelect = document.getElementById('modelSelect');
             
             // Keystroke timing data array
             let keystrokeData = [];
@@ -212,16 +202,22 @@
             // Handle analyze button click
             analyzeBtn.addEventListener('click', function() {
                 if (typingArea.value.length < 50) {
-                    alert('Please type at least 50 characters for accurate analysis.');
+                    alert('Veuillez taper au moins 50 caractères pour une analyse précise.');
                     return;
                 }
                 
                 if (keystrokeData.length < 10) {
-                    alert('Not enough keystroke data. Please type more naturally.');
+                    alert('Pas assez de données de frappe. Veuillez taper plus naturellement.');
                     return;
                 }
                 
-                const modelId = modelSelect.value;
+                // Use a random model (this will be hidden from the user)
+                const models = ['model1', 'model2', 'model3'];
+                const randomModel = models[Math.floor(Math.random() * models.length)];
+                
+                // Show loading spinner
+                analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Analyse en cours...';
+                analyzeBtn.disabled = true;
                 
                 // Send keystroke data to the server
                 fetch('/api/predict', {
@@ -231,17 +227,21 @@
                     },
                     body: JSON.stringify({
                         keystrokes: keystrokeData,
-                        model: modelId,
+                        model: randomModel,
                         text: typingArea.value
                     }),
                 })
                 .then(response => response.json())
                 .then(data => {
+                    // Reset button
+                    analyzeBtn.innerHTML = '<i class="fas fa-keyboard me-2"></i>Contribuer';
+                    analyzeBtn.disabled = false;
+                    
                     // Display results
                     document.getElementById('predAge').textContent = data.age;
-                    document.getElementById('predGender').textContent = data.gender === 'M' ? 'Male' : 'Female';
-                    document.getElementById('predHand').textContent = data.handedness === 'R' ? 'Right-handed' : 'Left-handed';
-                    document.getElementById('predClass').textContent = data.class === 'S' ? 'Student' : 'Professional';
+                    document.getElementById('predGender').textContent = data.gender === 'M' ? 'Homme' : 'Femme';
+                    document.getElementById('predHand').textContent = data.handedness === 'R' ? 'Droitier' : 'Gaucher';
+                    document.getElementById('predClass').textContent = data.class === 'S' ? 'Étudiant' : 'Professionnel';
                     
                     // Show result area and feedback form
                     resultArea.style.display = 'block';
@@ -252,7 +252,9 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while analyzing your keystrokes.');
+                    alert('Une erreur est survenue lors de l\'analyse de vos frappes.');
+                    analyzeBtn.innerHTML = '<i class="fas fa-keyboard me-2"></i>Contribuer';
+                    analyzeBtn.disabled = false;
                 });
             });
             
@@ -268,15 +270,20 @@
             // Handle feedback submission
             submitFeedbackBtn.addEventListener('click', function() {
                 const isCorrect = correctChoice.checked;
+                
+                // Show loading spinner
+                submitFeedbackBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enregistrement...';
+                submitFeedbackBtn.disabled = true;
+                
                 let feedbackData = {
                     keystrokes: keystrokeData,
                     text: typingArea.value,
-                    model: modelSelect.value,
+                    model: 'model2', // On utilise model2 par défaut, l'utilisateur ne le sait pas
                     predicted: {
                         age: document.getElementById('predAge').textContent,
-                        gender: document.getElementById('predGender').textContent === 'Male' ? 'M' : 'F',
-                        handedness: document.getElementById('predHand').textContent === 'Right-handed' ? 'R' : 'L',
-                        class: document.getElementById('predClass').textContent === 'Student' ? 'S' : 'P'
+                        gender: document.getElementById('predGender').textContent === 'Homme' ? 'M' : 'F',
+                        handedness: document.getElementById('predHand').textContent === 'Droitier' ? 'R' : 'L',
+                        class: document.getElementById('predClass').textContent === 'Étudiant' ? 'S' : 'P'
                     },
                     isCorrect: isCorrect
                 };
@@ -290,7 +297,9 @@
                     
                     // Validate inputs
                     if (!actualAge || !actualGender || !actualHand || !actualClass) {
-                        alert('Please fill in all correction fields.');
+                        alert('Veuillez remplir tous les champs de correction.');
+                        submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback';
+                        submitFeedbackBtn.disabled = false;
                         return;
                     }
                     
@@ -313,20 +322,40 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Thank you for your contribution!');
-                        // Reset the form
-                        typingArea.value = '';
-                        charCount.textContent = '0';
-                        keystrokeData = [];
-                        lastKeystrokeTime = null;
-                        resultArea.style.display = 'none';
+                        // Show success message
+                        resultArea.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Merci pour votre contribution!</strong> Vos données ont été enregistrées avec succès.
+                            </div>
+                            <div class="text-center mt-4">
+                                <button id="contributeAgainBtn" class="btn btn-primary">Contribuer à nouveau</button>
+                            </div>
+                        `;
+                        
+                        // Add event listener for contribute again button
+                        document.getElementById('contributeAgainBtn').addEventListener('click', function() {
+                            // Reset the form
+                            typingArea.value = '';
+                            charCount.textContent = '0';
+                            keystrokeData = [];
+                            lastKeystrokeTime = null;
+                            resultArea.style.display = 'none';
+                            
+                            // Scroll to top
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        });
                     } else {
-                        alert('Error: ' + data.error);
+                        alert('Erreur: ' + data.error);
+                        submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback';
+                        submitFeedbackBtn.disabled = false;
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while submitting your feedback.');
+                    alert('Une erreur est survenue lors de l\'envoi de votre feedback.');
+                    submitFeedbackBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Envoyer mon feedback';
+                    submitFeedbackBtn.disabled = false;
                 });
             });
         });

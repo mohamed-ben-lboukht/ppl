@@ -281,9 +281,23 @@ def contribute_data():
         return jsonify({'success': False, 'error': 'Invalid data format'})
     
     try:
+        # Validate keystrokes data
+        if 'keystrokes' not in data or not isinstance(data['keystrokes'], list) or len(data['keystrokes']) < 5:
+            return jsonify({'success': False, 'error': 'Invalid keystroke data'})
+            
         # Add timestamp and ID
         data['timestamp'] = datetime.now().isoformat()
         data['id'] = str(uuid.uuid4())
+        
+        # Ensure we capture the raw keystroke data
+        # Add keystroke statistics for easier analysis
+        keystroke_stats = {
+            'count': len(data['keystrokes']),
+            'avg_time': sum(data['keystrokes']) / len(data['keystrokes']) / 1000,  # in ms
+            'min_time': min(data['keystrokes']) / 1000,  # in ms
+            'max_time': max(data['keystrokes']) / 1000,  # in ms
+        }
+        data['keystroke_stats'] = keystroke_stats
         
         # Save data to JSON file
         file_path = os.path.join('data', f"{data['id']}.json")
@@ -291,6 +305,7 @@ def contribute_data():
         with open(file_path, 'w') as f:
             json.dump(data, f, indent=2)
         
+        print(f"Saved contribution data to {file_path} with {len(data['keystrokes'])} keystrokes")
         return jsonify({'success': True, 'id': data['id']})
     
     except Exception as e:
