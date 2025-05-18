@@ -40,11 +40,31 @@ This application captures keystroke timing patterns and uses machine learning mo
 3. Click "Analyze Keystrokes" to get predictions
 4. View the results in the analysis section
 
+## Contributing Data
+
+You can help improve our models by contributing your own keystroke data:
+
+1. Visit the "Contribute" page
+2. Type freely in the text area (minimum 50 characters)
+3. The system will analyze your keystrokes and show predictions
+4. Confirm if the predictions are correct or provide correct information
+5. Your data will be saved anonymously and used to improve our models
+
+## Admin Dashboard
+
+The admin dashboard allows you to:
+
+1. View all collected keystroke data
+2. Filter data by model type and prediction accuracy
+3. See detailed statistics about the collected data
+4. Download the complete dataset in JSON format
+
 ## Technical Details
 
 - Backend: Flask web server with PyTorch models
 - Frontend: HTML/JavaScript for capturing keystrokes and displaying results
 - Models: Neural network architecture with shared layers and task-specific heads
+- Data Storage: Local JSON files for easy management and portability
 
 ## Models
 

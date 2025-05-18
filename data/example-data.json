@@ -1,0 +1,20 @@
+{
+  "keystrokes": [234567.8, 123456.7, 345678.9, 456789.0, 567890.1, 678901.2, 789012.3, 890123.4, 901234.5, 102345.6],
+  "text": "Ceci est un exemple de texte pour tester l'application. C'est un exemple de données collectées.",
+  "model": "model2",
+  "predicted": {
+    "age": "25",
+    "gender": "M",
+    "handedness": "R",
+    "class": "S"
+  },
+  "isCorrect": false,
+  "actual": {
+    "age": "28",
+    "gender": "M",
+    "handedness": "L",
+    "class": "P"
+  },
+  "timestamp": "2023-05-16T12:00:00.000Z",
+  "id": "example-123456789"
+} 
