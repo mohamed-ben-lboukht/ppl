@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional keystroke timing analysis and user profiling system using advanced machine learning">
+    <meta name="keywords" content="keystroke analysis, biometrics, machine learning, user profiling, typing patterns">
+    <meta name="author" content="Keystroke Analytics Team">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    
+    <title>{% block title %}{{ title | default('Keystroke Analytics') }}{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="d-flex flex-column h-100">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                <i class="fas fa-keyboard me-2"></i>
+                Keystroke Analytics
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('contribute') }}">
+                            <i class="fas fa-plus-circle me-1"></i>Contribute
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api_docs') }}">
+                            <i class="fas fa-code me-1"></i>API Docs
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('admin') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/api/health">
+                                <i class="fas fa-heartbeat me-2"></i>System Health
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Alert Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="flex-shrink-0">
+        <div class="container-fluid py-4">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-4 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="fw-bold">Keystroke Analytics</h6>
+                    <p class="text-muted small mb-2">
+                        Advanced keystroke timing analysis using machine learning for user profiling and biometric authentication.
+                    </p>
+                    <p class="text-muted small">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Privacy-focused • Secure • Professional
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="fw-bold">Resources</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="{{ url_for('api_docs') }}" class="text-decoration-none">
+                            <i class="fas fa-book me-1"></i>API Documentation
+                        </a></li>
+                        <li><a href="/api/metrics" class="text-decoration-none">
+                            <i class="fas fa-chart-line me-1"></i>System Metrics
+                        </a></li>
+                        <li><a href="https://github.com" target="_blank" class="text-decoration-none">
+                            <i class="fab fa-github me-1"></i>Source Code
+                        </a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="fw-bold">Support</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="#" class="text-decoration-none">
+                            <i class="fas fa-question-circle me-1"></i>Help Center
+                        </a></li>
+                        <li><a href="#" class="text-decoration-none">
+                            <i class="fas fa-bug me-1"></i>Report Issue
+                        </a></li>
+                        <li><a href="#" class="text-decoration-none">
+                            <i class="fas fa-envelope me-1"></i>Contact Us
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-3">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="text-muted small mb-0">
+                        © 2024 Keystroke Analytics. All rights reserved.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <span class="text-muted small">
+                        Version {{ version | default('2.0.0') }} • 
+                        <span id="system-status" class="text-success">
+                            <i class="fas fa-circle"></i> Online
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- System status checker -->
+    <script>
+        // Check system status periodically
+        function checkSystemStatus() {
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    const statusEl = document.getElementById('system-status');
+                    if (data.status === 'healthy') {
+                        statusEl.innerHTML = '<i class="fas fa-circle"></i> Online';
+                        statusEl.className = 'text-success';
+                    } else {
+                        statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Issues';
+                        statusEl.className = 'text-warning';
+                    }
+                })
+                .catch(() => {
+                    const statusEl = document.getElementById('system-status');
+                    statusEl.innerHTML = '<i class="fas fa-times-circle"></i> Offline';
+                    statusEl.className = 'text-danger';
+                });
+        }
+
+        // Check status every 60 seconds
+        setInterval(checkSystemStatus, 60000);
+        // Check immediately on load
+        document.addEventListener('DOMContentLoaded', checkSystemStatus);
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

@@ -1,342 +1,439 @@
+#!/usr/bin/env python3
+"""
+Professional Keystroke Analytics Application
+Advanced keystroke timing analysis and user profiling system with ML models.
+
+Author: Keystroke Analytics Team
+Version: 2.0.0
+License: MIT
+"""
+
 import os
-import torch
-import torch.nn as nn
-import numpy as np
-import json
+import sys
+import logging
+import traceback
 import uuid
-from datetime import datetime
-from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
-import base64
+import psutil
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Any, Optional
 
-# Import model processors
-from model1_processor import Model1Processor
-from model2_processor import Model2Processor
-from model3_processor import Model3Processor
+# Flask imports
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-app = Flask(__name__, static_folder='static')
+# Application imports
+from config import AppConfig
+from models import db, init_db, KeystrokeData, Prediction, UserContribution
+from models.ml_models import ModelManager
+from api import APIManager
+from api.schemas import SchemaValidator, PredictionRequest, ContributionRequest
 
-# Create templates directory if it doesn't exist
-os.makedirs('templates', exist_ok=True)
-# Create static directory if it doesn't exist
-os.makedirs('static', exist_ok=True)
-# Create data directory if it doesn't exist
-os.makedirs('data', exist_ok=True)
-
-# Define different model architectures for each model type
-class Model1Net(nn.Module):
-    def __init__(self):
-        super(Model1Net, self).__init__()
-        self.shared = nn.Sequential(
-            nn.Linear(7, 128),  # Model 1 has 7 features
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 32),
-            nn.ReLU()
-        )
-        self.age_head = nn.Sequential(
-            nn.Linear(32, 1),
-            nn.ReLU()
-        )
-        self.gender_head = nn.Linear(32, 2)
-        self.handedness_head = nn.Linear(32, 2)
-        self.class_head = nn.Linear(32, 2)
-
-    def forward(self, x):
-        x = self.shared(x)
-        age = self.age_head(x)
-        gender = self.gender_head(x)
-        handedness = self.handedness_head(x)
-        class_output = self.class_head(x)
-        return age, gender, handedness, class_output
-
-class Model2Net(nn.Module):
-    def __init__(self):
-        super(Model2Net, self).__init__()
-        self.shared = nn.Sequential(
-            nn.Linear(20, 128),  # Model 2 has 20 histogram features
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 32),
-            nn.ReLU()
-        )
-        self.age_head = nn.Sequential(
-            nn.Linear(32, 1),
-            nn.ReLU()
-        )
-        self.gender_head = nn.Linear(32, 2)
-        self.handedness_head = nn.Linear(32, 2)
-        self.class_head = nn.Linear(32, 2)
-
-    def forward(self, x):
-        x = self.shared(x)
-        age = self.age_head(x)
-        gender = self.gender_head(x)
-        handedness = self.handedness_head(x)
-        class_output = self.class_head(x)
-        return age, gender, handedness, class_output
-
-class Model3Net(nn.Module):
-    def __init__(self):
-        super(Model3Net, self).__init__()
-        self.shared = nn.Sequential(
-            nn.Linear(20, 128),  # Model 3 has 20 combined features
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 32),
-            nn.ReLU()
-        )
-        self.age_head = nn.Sequential(
-            nn.Linear(32, 1),
-            nn.ReLU()
-        )
-        self.gender_head = nn.Linear(32, 2)
-        self.handedness_head = nn.Linear(32, 2)
-        self.class_head = nn.Linear(32, 2)
-
-    def forward(self, x):
-        x = self.shared(x)
-        age = self.age_head(x)
-        gender = self.gender_head(x)
-        handedness = self.handedness_head(x)
-        class_output = self.class_head(x)
-        return age, gender, handedness, class_output
-
-# Helper functions for feature extraction
-def calculate_histogram_features(timing_data, num_bins=20):
-    """
-    Calculate histogram features from keystroke timing data
-    """
-    if len(timing_data) < 5:  # Need minimum keystrokes for meaningful analysis
-        return None
-    
-    # Values are already in milliseconds, no need to convert
-    timing_ms = timing_data
-    
-    # Create histogram with adaptive bin edges based on data range
-    min_time = min(timing_ms)
-    max_time = max(timing_ms)
-    
-    # Ensure we have a reasonable range, even with limited data
-    if max_time - min_time < 20:
-        max_time = min_time + 20  # Minimum range of 20ms
-    
-    # Create bins and calculate histogram
-    bins = np.linspace(min_time, max_time, num_bins + 1)
-    hist, _ = np.histogram(timing_ms, bins=bins, density=True)
-    
-    # Normalize the histogram to sum to 1
-    if np.sum(hist) > 0:
-        hist = hist / np.sum(hist)
-    
-    return hist
-
-def calculate_basic_features(timing_data):
-    """
-    Calculate basic statistical features from keystroke timing data
-    """
-    if len(timing_data) < 5:  # Need minimum keystrokes
-        return None
-    
-    # Values are already in milliseconds, no need to convert
-    timing_ms = timing_data
-    
-    # Calculate basic statistics
-    mean = np.mean(timing_ms)
-    median = np.median(timing_ms)
-    std_dev = np.std(timing_ms)
-    min_val = np.min(timing_ms)
-    max_val = np.max(timing_ms)
-    
-    # Calculate quartiles
-    q1 = np.percentile(timing_ms, 25)
-    q3 = np.percentile(timing_ms, 75)
-    iqr = q3 - q1
-    
-    # Advanced features
-    coef_var = std_dev / mean if mean > 0 else 0
-    
-    # Combine all features
-    features = [
-        mean, median, std_dev, min_val, max_val,
-        q1, q3, iqr, coef_var,
-        # Padding to reach 20 features as expected by the model
-        mean/2, std_dev/2, coef_var*2, 
-        np.log(mean) if mean > 0 else 0,
-        np.log(std_dev) if std_dev > 0 else 0,
-        max_val/mean if mean > 0 else 0,
-        min_val/mean if mean > 0 else 0,
-        q1/q3 if q3 > 0 else 0,
-        mean/max_val if max_val > 0 else 0,
-        std_dev/max_val if max_val > 0 else 0,
-        iqr/std_dev if std_dev > 0 else 0
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/app.log'),
+        logging.StreamHandler(sys.stdout)
     ]
-    
-    return features
+)
+logger = logging.getLogger(__name__)
 
-def calculate_advanced_features(timing_data):
+# Global variables
+model_manager: Optional[ModelManager] = None
+app_start_time = datetime.utcnow()
+
+
+def create_app(config_name: str = None) -> Flask:
     """
-    Calculate advanced features combining histogram and statistics
+    Application factory pattern for creating Flask app
+    
+    Args:
+        config_name: Configuration environment name
+        
+    Returns:
+        Configured Flask application
     """
-    if len(timing_data) < 5:
-        return None
+    app = Flask(__name__)
     
-    # Get histogram features (10 bins)
-    hist_features = calculate_histogram_features(timing_data, num_bins=10)
+    # Load configuration
+    config = AppConfig(config_name)
+    app.config.update(config.to_dict())
     
-    # Get a subset of basic features (10 features)
-    basic_features = calculate_basic_features(timing_data)[:10]
+    # Configure app for proxy (if behind nginx/load balancer)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # Combine both feature sets
-    if hist_features is not None and basic_features is not None:
-        combined_features = np.concatenate([hist_features, basic_features])
-        return combined_features
+    # Initialize extensions
+    setup_extensions(app, config)
     
-    return None
-
-# Initialize model processors with correct model classes
-model1 = Model1Processor('model_weights.pth')
-model2 = Model2Processor('model1_weights.pth')
-model3 = Model3Processor('model3_weights.pth')
-
-# Load models at startup
-def load_models():
-    model1.load_model(Model1Net)
-    model2.load_model(Model2Net)
-    model3.load_model(Model3Net)
-    print("Models loaded successfully")
-
-# Load models when app starts
-load_models()
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/contribute')
-def contribute():
-    return render_template('contribute.html')
-
-@app.route('/admin')
-def admin():
-    return render_template('admin.html')
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory(app.static_folder, filename)
-
-@app.route('/api/predict', methods=['POST'])
-def predict():
-    data = request.json
-    keystroke_timings = data.get('keystrokes', [])
-    model_id = data.get('model', 'model2')  # Default to histogram model
+    # Initialize models and database
+    init_db(app, config)
     
-    if len(keystroke_timings) < 10:
-        return jsonify({'error': 'Not enough keystroke data. Please type more.'})
+    # Setup error handlers
+    setup_error_handlers(app)
+    
+    # Register blueprints and routes
+    register_routes(app)
+    
+    # Initialize ML models
+    initialize_ml_models(app, config)
+    
+    logger.info(f"Application created with config: {config_name or 'default'}")
+    return app
+
+
+def setup_extensions(app: Flask, config: AppConfig) -> None:
+    """Setup Flask extensions"""
+    
+    # CORS configuration
+    CORS(app, 
+         origins=config.cors_origins,
+         methods=['GET', 'POST', 'PUT', 'DELETE'],
+         allow_headers=['Content-Type', 'Authorization'],
+         supports_credentials=True)
+    
+    # Rate limiting
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=config.rate_limits,
+        storage_uri="memory://"
+    )
+    
+    # Store in app context for access in routes
+    app.limiter = limiter
+    
+    logger.info("Extensions configured successfully")
+
+
+def setup_error_handlers(app: Flask) -> None:
+    """Setup comprehensive error handling"""
+    
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e):
+        """Handle HTTP exceptions"""
+        logger.warning(f"HTTP Exception: {e.code} - {e.description}")
+        return jsonify({
+            'error': {
+                'code': e.code,
+                'name': e.name,
+                'description': e.description
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }), e.code
+    
+    @app.errorhandler(Exception)
+    def handle_general_exception(e):
+        """Handle general exceptions"""
+        error_id = str(uuid.uuid4())
+        logger.error(f"Unhandled exception {error_id}: {str(e)}\n{traceback.format_exc()}")
+        
+        return jsonify({
+            'error': {
+                'code': 500,
+                'name': 'Internal Server Error',
+                'description': 'An unexpected error occurred',
+                'error_id': error_id
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+    
+    @app.errorhandler(429)
+    def handle_rate_limit(e):
+        """Handle rate limit exceeded"""
+        logger.warning(f"Rate limit exceeded: {request.remote_addr}")
+        return jsonify({
+            'error': {
+                'code': 429,
+                'name': 'Too Many Requests',
+                'description': 'Rate limit exceeded. Please try again later.',
+                'retry_after': e.retry_after
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        }), 429
+
+
+def initialize_ml_models(app: Flask, config: AppConfig) -> None:
+    """Initialize machine learning models"""
+    global model_manager
     
     try:
-        # Select the appropriate model processor based on model_id
-        processor = None
-        if model_id == 'model1':
-            processor = model1
-        elif model_id == 'model2':
-            processor = model2
-        elif model_id == 'model3':
-            processor = model3
-        else:
-            return jsonify({'error': 'Invalid model selection'})
+        models_dir = Path(config.model_config.model1_path).parent
+        model_manager = ModelManager(models_dir)
         
-        # Extract features
-        features = processor.extract_features(keystroke_timings)
-        if features is None:
-            return jsonify({'error': 'Failed to extract features from keystroke data'})
+        available_models = model_manager.get_available_models()
+        logger.info(f"Loaded ML models: {available_models}")
         
-        # Normalize features
-        normalized_features = processor.normalize_features(features)
+        if not available_models:
+            logger.warning("No ML models loaded successfully")
         
-        # Make prediction
-        result = processor.predict(normalized_features)
-        if result is None:
-            return jsonify({'error': 'Failed to make prediction'})
+    except Exception as e:
+        logger.error(f"Failed to initialize ML models: {e}")
+        model_manager = None
+
+
+def register_routes(app: Flask) -> None:
+    """Register all application routes"""
+    
+    # API routes
+    api_manager = APIManager(app)
+    api_manager.register_api_routes()
+    
+    # Web interface routes
+    register_web_routes(app)
+    
+    # Health and monitoring routes
+    register_health_routes(app)
+
+
+def register_web_routes(app: Flask) -> None:
+    """Register web interface routes"""
+    
+    @app.route('/')
+    def index():
+        """Main application page"""
+        try:
+            return render_template('index.html',
+                                 title="Keystroke Analytics",
+                                 version=app.config.get('VERSION', '2.0.0'))
+        except Exception as e:
+            logger.error(f"Error rendering index: {e}")
+            return f"Application Error: {str(e)}", 500
+    
+    @app.route('/contribute')
+    def contribute():
+        """Data contribution page"""
+        try:
+            return render_template('contribute.html',
+                                 title="Contribute Data")
+        except Exception as e:
+            logger.error(f"Error rendering contribute page: {e}")
+            return f"Application Error: {str(e)}", 500
+    
+    @app.route('/admin')
+    def admin():
+        """Admin dashboard page"""
+        try:
+            return render_template('admin.html',
+                                 title="Admin Dashboard")
+        except Exception as e:
+            logger.error(f"Error rendering admin page: {e}")
+            return f"Application Error: {str(e)}", 500
+    
+    @app.route('/docs')
+    def api_docs():
+        """API documentation page"""
+        return render_template('api_docs.html', title="API Documentation")
+    
+    @app.route('/static/<path:filename>')
+    def serve_static(filename):
+        """Serve static files"""
+        return send_from_directory(app.static_folder, filename)
+
+
+def register_health_routes(app: Flask) -> None:
+    """Register health check and monitoring routes"""
+    
+    @app.route('/api/health')
+    def health_check():
+        """Comprehensive health check endpoint"""
+        try:
+            # Basic health indicators
+            health_status = {
+                'status': 'healthy',
+                'timestamp': datetime.utcnow().isoformat(),
+                'version': app.config.get('VERSION', '2.0.0'),
+                'environment': app.config.get('ENVIRONMENT', 'development'),
+                'uptime_seconds': (datetime.utcnow() - app_start_time).total_seconds()
+            }
             
-        return jsonify(result)
-        
-    except Exception as e:
-        print(f"Error in prediction: {str(e)}")
-        return jsonify({'error': f'Prediction error: {str(e)}'})
-
-@app.route('/api/contribute', methods=['POST'])
-def contribute_data():
-    data = request.json
-    
-    if not data or not isinstance(data, dict):
-        return jsonify({'success': False, 'error': 'Invalid data format'})
-    
-    try:
-        # Validate keystrokes data
-        if 'keystrokes' not in data or not isinstance(data['keystrokes'], list) or len(data['keystrokes']) < 5:
-            return jsonify({'success': False, 'error': 'Invalid keystroke data'})
+            # Database health
+            try:
+                db.session.execute('SELECT 1')
+                health_status['database_status'] = 'healthy'
+            except Exception as e:
+                health_status['database_status'] = f'unhealthy: {str(e)}'
+                health_status['status'] = 'degraded'
             
-        # Add timestamp and ID
-        data['timestamp'] = datetime.now().isoformat()
-        data['id'] = str(uuid.uuid4())
-        
-        # Ensure we capture the raw keystroke data
-        # Add keystroke statistics for easier analysis
-        keystroke_stats = {
-            'count': len(data['keystrokes']),
-            'avg_time': sum(data['keystrokes']) / len(data['keystrokes']),  # already in ms
-            'min_time': min(data['keystrokes']),  # already in ms
-            'max_time': max(data['keystrokes']),  # already in ms
-        }
-        data['keystroke_stats'] = keystroke_stats
-        
-        # Save data to JSON file
-        file_path = os.path.join('data', f"{data['id']}.json")
-        
-        with open(file_path, 'w') as f:
-            json.dump(data, f, indent=2)
-        
-        print(f"Saved contribution data to {file_path} with {len(data['keystrokes'])} keystrokes")
-        return jsonify({'success': True, 'id': data['id']})
+            # ML models health
+            if model_manager:
+                available_models = model_manager.get_available_models()
+                health_status['models_loaded'] = available_models
+                if not available_models:
+                    health_status['status'] = 'degraded'
+            else:
+                health_status['models_loaded'] = []
+                health_status['status'] = 'degraded'
+            
+            # System metrics
+            process = psutil.Process()
+            health_status['memory_usage_mb'] = process.memory_info().rss / 1024 / 1024
+            health_status['cpu_usage_percent'] = process.cpu_percent()
+            
+            # Set appropriate HTTP status code
+            status_code = 200 if health_status['status'] == 'healthy' else 503
+            
+            return jsonify(health_status), status_code
+            
+        except Exception as e:
+            logger.error(f"Health check failed: {e}")
+            return jsonify({
+                'status': 'unhealthy',
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
+            }), 503
     
-    except Exception as e:
-        print(f"Error saving contribution: {str(e)}")
-        return jsonify({'success': False, 'error': f'Failed to save data: {str(e)}'})
+    @app.route('/api/metrics')
+    def metrics():
+        """Application metrics endpoint"""
+        try:
+            # Database metrics
+            total_predictions = db.session.query(Prediction).count()
+            total_contributions = db.session.query(UserContribution).count()
+            total_sessions = db.session.query(KeystrokeData).distinct(KeystrokeData.session_id).count()
+            
+            # Recent activity (last 24 hours)
+            yesterday = datetime.utcnow() - timedelta(days=1)
+            recent_predictions = db.session.query(Prediction).filter(
+                Prediction.created_at >= yesterday
+            ).count()
+            
+            # Model performance metrics
+            model_stats = {}
+            if model_manager:
+                model_stats = model_manager.get_model_stats()
+            
+            # System metrics
+            process = psutil.Process()
+            system_stats = {
+                'memory_usage_mb': process.memory_info().rss / 1024 / 1024,
+                'cpu_usage_percent': process.cpu_percent(),
+                'disk_usage': psutil.disk_usage('/'),
+                'uptime_seconds': (datetime.utcnow() - app_start_time).total_seconds()
+            }
+            
+            metrics_data = {
+                'database_metrics': {
+                    'total_predictions': total_predictions,
+                    'total_contributions': total_contributions,
+                    'total_sessions': total_sessions,
+                    'recent_predictions_24h': recent_predictions
+                },
+                'model_metrics': model_stats,
+                'system_metrics': system_stats,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            return jsonify(metrics_data)
+            
+        except Exception as e:
+            logger.error(f"Metrics endpoint failed: {e}")
+            return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/data', methods=['GET'])
-def get_admin_data():
-    try:
-        all_data = []
-        data_dir = 'data'
-        
-        # Load all JSON files from the data directory
-        for filename in os.listdir(data_dir):
-            if filename.endswith('.json'):
-                file_path = os.path.join(data_dir, filename)
-                try:
-                    with open(file_path, 'r') as f:
-                        file_data = json.load(f)
-                        all_data.append(file_data)
-                except Exception as e:
-                    print(f"Error reading file {filename}: {str(e)}")
-        
-        # Sort by timestamp (newest first)
-        all_data.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
-        
-        return jsonify(all_data)
+
+# API Routes (moved to separate module for organization)
+def create_api_routes(app: Flask) -> None:
+    """Create API routes - now handled by APIManager"""
+    pass
+
+
+# Application startup and configuration
+def ensure_directories():
+    """Ensure required directories exist"""
+    directories = ['logs', 'data', 'models', 'static', 'templates']
+    for directory in directories:
+        Path(directory).mkdir(exist_ok=True)
+
+
+def setup_logging(config: AppConfig):
+    """Setup application logging"""
+    log_level = getattr(logging, config.log_level.upper())
     
-    except Exception as e:
-        print(f"Error retrieving admin data: {str(e)}")
-        return jsonify([])
+    # Create formatters
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
+    )
+    console_formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s'
+    )
+    
+    # File handler
+    file_handler = logging.FileHandler('logs/app.log')
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(file_formatter)
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(console_formatter)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.handlers.clear()
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+
+# Application factory and entry point
+app = None
+
+def get_app() -> Flask:
+    """Get or create application instance"""
+    global app
+    if app is None:
+        ensure_directories()
+        app = create_app()
+    return app
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    try:
+        # Setup
+        ensure_directories()
+        
+        # Create application
+        app = create_app()
+        
+        # Get configuration
+        config = AppConfig()
+        setup_logging(config)
+        
+        logger.info("="*60)
+        logger.info("KEYSTROKE ANALYTICS APPLICATION STARTING")
+        logger.info("="*60)
+        logger.info(f"Environment: {config.environment}")
+        logger.info(f"Debug mode: {config.debug}")
+        logger.info(f"Host: {config.host}")
+        logger.info(f"Port: {config.port}")
+        logger.info("="*60)
+        
+        # Create database tables
+        with app.app_context():
+            db.create_all()
+            logger.info("Database tables created successfully")
+        
+        # Start application
+        app.run(
+            host=config.host,
+            port=config.port,
+            debug=config.debug,
+            threaded=True
+        )
+        
+    except KeyboardInterrupt:
+        logger.info("Application shutdown requested by user")
+    except Exception as e:
+        logger.error(f"Failed to start application: {e}")
+        sys.exit(1)
+    finally:
+        logger.info("Application shutdown complete")
+
+
+# For WSGI servers (Gunicorn, uWSGI, etc.)
+application = get_app() 

@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Main application service
+  keystroke-analytics:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD)}
+        VERSION: ${VERSION:-1.0.0}
+    container_name: keystroke-analytics-app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - SECRET_KEY=${SECRET_KEY:-development-secret-key-change-in-production}
+      - DATABASE_URL=sqlite:///app/data/keystroke_analytics.db
+      - LOG_LEVEL=DEBUG
+      - CORS_ORIGINS=*
+    volumes:
+      - ./:/app
+      - keystroke_data:/app/data
+      - keystroke_logs:/app/logs
+      - keystroke_models:/app/models
+    networks:
+      - keystroke-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Production service configuration
+  keystroke-analytics-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD)}
+        VERSION: ${VERSION:-1.0.0}
+    container_name: keystroke-analytics-prod
+    ports:
+      - "8000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - DATABASE_URL=sqlite:///app/data/keystroke_analytics.db
+      - LOG_LEVEL=INFO
+      - WORKERS=4
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,https://yourdomain.com}
+    volumes:
+      - keystroke_data_prod:/app/data
+      - keystroke_logs_prod:/app/logs
+      - keystroke_models_prod:/app/models
+    networks:
+      - keystroke-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - production
+
+  # Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: keystroke-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - keystroke-analytics-prod
+    networks:
+      - keystroke-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: keystroke-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - keystroke-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: keystroke-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - keystroke-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  # Development volumes
+  keystroke_data:
+    driver: local
+  keystroke_logs:
+    driver: local
+  keystroke_models:
+    driver: local
+  
+  # Production volumes
+  keystroke_data_prod:
+    driver: local
+  keystroke_logs_prod:
+    driver: local
+  keystroke_models_prod:
+    driver: local
+  
+  # Infrastructure volumes
+  nginx_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  keystroke-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
