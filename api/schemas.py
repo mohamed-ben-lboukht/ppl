@@ -71,7 +71,7 @@ class PredictionRequest(BaseModel):
     keystroke_data: KeystrokeTimingData
     model_name: str = Field(
         ...,
-        regex=r'^(model1|model2|model3)$',
+        pattern=r'^(model1|model2|model3)$',
         description="Name of the model to use for prediction"
     )
     include_confidence: bool = Field(
@@ -101,9 +101,9 @@ class PredictionResponse(BaseModel):
     
     prediction_id: str = Field(..., description="Unique prediction identifier")
     age: int = Field(..., ge=18, le=100, description="Predicted age")
-    gender: str = Field(..., regex=r'^(Male|Female)$', description="Predicted gender")
-    handedness: str = Field(..., regex=r'^(Left-handed|Right-handed)$', description="Predicted handedness")
-    user_class: str = Field(..., regex=r'^(Professional|Casual)$', description="Predicted user class", alias='class')
+    gender: str = Field(..., pattern=r'^(Male|Female)$', description="Predicted gender")
+    handedness: str = Field(..., pattern=r'^(Left-handed|Right-handed)$', description="Predicted handedness")
+    user_class: str = Field(..., pattern=r'^(Professional|Casual)$', description="Predicted user class", alias='class')
     confidence_scores: Optional[ConfidenceScores] = Field(default=None, description="Prediction confidence scores")
     prediction_time_ms: float = Field(..., ge=0, description="Time taken for prediction in milliseconds")
     model_used: str = Field(..., description="Model used for prediction")
@@ -120,13 +120,13 @@ class UserContributionData(BaseModel):
     )
     
     age: Optional[int] = Field(default=None, ge=18, le=100, description="User's actual age")
-    gender: Optional[str] = Field(default=None, regex=r'^(Male|Female)$', description="User's actual gender")
-    handedness: Optional[str] = Field(default=None, regex=r'^(Left-handed|Right-handed)$', description="User's actual handedness")
-    user_class: Optional[str] = Field(default=None, regex=r'^(Professional|Casual)$', description="User's actual class")
+    gender: Optional[str] = Field(default=None, pattern=r'^(Male|Female)$', description="User's actual gender")
+    handedness: Optional[str] = Field(default=None, pattern=r'^(Left-handed|Right-handed)$', description="User's actual handedness")
+    user_class: Optional[str] = Field(default=None, pattern=r'^(Professional|Casual)$', description="User's actual class")
     profession: Optional[str] = Field(default=None, max_length=100, description="User's profession")
     typing_experience: Optional[str] = Field(
         default=None, 
-        regex=r'^(Beginner|Intermediate|Expert)$', 
+        pattern=r'^(Beginner|Intermediate|Expert)$', 
         description="User's typing experience level"
     )
     keyboard_type: Optional[str] = Field(default=None, max_length=50, description="Type of keyboard used")
@@ -185,7 +185,7 @@ class ModelStatsResponse(BaseModel):
 
 class HealthCheckResponse(BaseModel):
     """Model for health check response"""
-    status: str = Field(..., regex=r'^(healthy|unhealthy|degraded)$')
+    status: str = Field(..., pattern=r'^(healthy|unhealthy|degraded)$')
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     version: str = Field(...)
     environment: str = Field(...)
